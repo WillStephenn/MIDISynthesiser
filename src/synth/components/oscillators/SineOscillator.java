@@ -2,16 +2,15 @@ package synth.components.oscillators;
 
 public class SineOscillator extends Oscillator{
 
-    private double angleDelta;
-
     public SineOscillator(double sampleRate){
         super(sampleRate);
-        this.angleDelta = 0;
     }
 
+    @Override
+    // In the case of the sine oscillator, the phase increment is an angle in rads
     public void setFrequency(double frequency){
         this.frequency = frequency;
-        this.angleDelta = (2 * Math.PI * frequency)/sampleRate;
+        this.phaseIncrement = (2 * Math.PI * frequency)/sampleRate;
     }
 
     protected double calculateAmplitude(double input){
@@ -19,7 +18,7 @@ public class SineOscillator extends Oscillator{
     }
 
     protected void advancePhase(){
-        phase += angleDelta;
+        phase += phaseIncrement;
         if (phase >= 2 * Math.PI) {
             phase -= 2 * Math.PI;
         }

@@ -26,7 +26,7 @@ public class Main {
             line.start(); // Start the line, allowing it to play audio
 
             // 2. Create your oscillator
-            TriangleOscillator oscillator = new TriangleOscillator(AudioConstants.SAMPLE_RATE);
+            SineOscillator oscillator = new SineOscillator(AudioConstants.SAMPLE_RATE);
             oscillator.setFrequency(440.0); // Play an A4 note
 
             // Create the buffer to hold the audio data

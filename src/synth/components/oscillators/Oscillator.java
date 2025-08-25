@@ -8,6 +8,7 @@ public abstract class Oscillator implements AudioComponent {
     protected final double sampleRate;
     protected double phase;
     protected double frequency;
+    protected double phaseIncrement;
 
     // Constructor
     public Oscillator(double sampleRate){
@@ -16,11 +17,14 @@ public abstract class Oscillator implements AudioComponent {
     }
 
     // Methods
-    public abstract void setFrequency(double frequency);
-
     protected abstract double calculateAmplitude(double input);
 
     protected abstract void advancePhase();
+
+    public void setFrequency(double frequency){
+        this.frequency = frequency;
+        this.phaseIncrement = (frequency/sampleRate);
+    }
 
     public double processSample(double input){
         double currentAmplitude = calculateAmplitude(input);

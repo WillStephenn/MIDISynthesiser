@@ -2,16 +2,9 @@ package synth.components.oscillators;
 
 public class TriangleOscillator extends Oscillator{
 
-    private double phaseIncrement;
-
     public TriangleOscillator(double sampleRate){
         super(sampleRate);
         this.phaseIncrement = 0;
-    }
-
-    public void setFrequency(double frequency){
-        this.frequency = frequency;
-        this.phaseIncrement = (frequency/sampleRate);
     }
 
     protected double calculateAmplitude(double input){
