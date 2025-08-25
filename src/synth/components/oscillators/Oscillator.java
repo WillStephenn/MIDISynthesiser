@@ -1,7 +1,6 @@
 package synth.components.oscillators;
 
 import synth.core.AudioComponent;
-import synth.core.AudioConstants;
 
 public abstract class Oscillator implements AudioComponent {
 
@@ -11,22 +10,20 @@ public abstract class Oscillator implements AudioComponent {
     protected double frequency;
 
     // Constructor
-    public Oscillator(){
-        this.sampleRate = AudioConstants.SAMPLE_RATE;
+    public Oscillator(double sampleRate){
+        this.sampleRate = sampleRate;
         this.phase = 0.0;
     }
 
     // Methods
-    protected abstract double calculateWaveform(double input);
+    public abstract void setFrequency(double frequency);
 
-    protected abstract double advancePhase();
+    protected abstract double calculateAmplitude(double input);
 
-    public void setFrequency(double frequency){
-        this.frequency = frequency;
-    }
+    protected abstract void advancePhase();
 
     public double processSample(double input){
-        double currentAmplitude = calculateWaveform(input);
+        double currentAmplitude = calculateAmplitude(input);
         advancePhase();
         return currentAmplitude;
     }
