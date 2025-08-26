@@ -84,6 +84,7 @@ public class Envelope implements AudioComponent {
         this.currentStage = Stage.RELEASE;
     }
 
+    @Override
     public double processSample(double input) {
         switch (currentStage){
             case IDLE:

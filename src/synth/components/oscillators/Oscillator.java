@@ -26,6 +26,7 @@ public abstract class Oscillator implements AudioComponent {
         this.phaseIncrement = (frequency/sampleRate); // Default Phase Increment Equation, override for non-linear oscillators
     }
 
+    @Override
     public double processSample(double input){
         double currentAmplitude = calculateAmplitude(input);
         advancePhase();
