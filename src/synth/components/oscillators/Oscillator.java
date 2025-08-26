@@ -23,7 +23,7 @@ public abstract class Oscillator implements AudioComponent {
 
     public void setFrequency(double frequency){
         this.frequency = frequency;
-        this.phaseIncrement = (frequency/sampleRate);
+        this.phaseIncrement = (frequency/sampleRate); // Default Phase Increment Equation, override for non-linear oscillators
     }
 
     public double processSample(double input){
