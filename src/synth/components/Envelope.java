@@ -28,8 +28,8 @@ public class Envelope implements AudioComponent {
         this.currentStage = Stage.IDLE;
         this.sampleRate = sampleRate;
 
-        // Default patch
-        setEnvelope(0.01, 0.1, 0.8,  0.2);
+        // Default Envelope patch
+        setEnvelope(2, 2, 0.5,  3);
     }
 
     public void setStage(Stage newStage){
@@ -88,7 +88,6 @@ public class Envelope implements AudioComponent {
     public double processSample(double input) {
         switch (currentStage){
             case IDLE:
-
                 return 0.0;
             case ATTACK:
                 currentMultiplier += attackIncrement;
