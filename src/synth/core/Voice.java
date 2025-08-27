@@ -16,7 +16,7 @@ public class Voice {
     private final Oscillator oscillator;
     private final ResonantLowPassFilter filter;
     public final Envelope ampEnvelope;
-    private final Envelope filterEnvelope;
+    public final Envelope filterEnvelope;
 
     // Oscillator Settings
     public enum Waveform{
@@ -31,15 +31,16 @@ public class Voice {
 
     //Constructor
     public Voice (Waveform waveform, double pitchFrequency, double sampleRate){
-        // Filter Defaults
-        this.filterCutoff = 20000;
-        this.filterResonance = 1;
-        this.filterModAmount = 500;
-
         // Audio Components
         this.filter = new ResonantLowPassFilter(sampleRate);
         this.ampEnvelope = new Envelope(sampleRate);
         this.filterEnvelope = new Envelope(sampleRate);
+
+        // Filter Defaults
+        this.filterCutoff = 20000;
+        this.filterResonance = 0.01;
+        this.filterModAmount = 2000;
+        this.filter.setParameters(this.filterCutoff, this.filterResonance);
 
         // Oscillator switch
         switch (waveform){
@@ -97,6 +98,8 @@ public class Voice {
 
     // Filter:
     public void setFilterParameters(double frequency, double resonance){
+        this.filterCutoff = frequency;
+        this.filterResonance = resonance;
         this.filter.setParameters(frequency, resonance);
     }
 
@@ -115,9 +118,9 @@ public class Voice {
             double sample = oscillator.processSample(input);
 
             // Calculate filter modulation based on the filter env values
-            double filterEnvValue = filterEnvelope.processSample(1.0);
-            double finalCutoff = filterCutoff + (filterEnvValue * filterModAmount);
-            filter.setParameters(finalCutoff, this.filterResonance);
+            double filterEnvValue = filterEnvelope.processSample(1.0); // Grab filter multiplier from filter envelope
+            double finalCutoff = filterCutoff + (filterEnvValue * filterModAmount); // Modulate cutoff based on the envelope multiplier
+            filter.setParameters(finalCutoff, this.filterResonance); // Update filter params
 
             // Process sample through filter
             sample = filter.processSample(sample);
