@@ -27,8 +27,10 @@ public class Voice implements AudioComponent{
     private double filterResonance;
     private double filterModAmount;
 
-    // Per Voice Amplitude
+    // Gain StagingL
     private double velocityMult;
+    private double preFilterMult;
+    private double postFilterMult;
 
     //Constructor
     public Voice (Synthesiser.Waveform waveform, double pitchFrequency, double sampleRate){
@@ -123,6 +125,12 @@ public class Voice implements AudioComponent{
         this.filter.setParameters(frequency, resonance);
     }
 
+    // Gain Staging
+    public void setFilterGainStaging(double preFilterGainDB, double postFilterGainDB){
+        this.preFilterMult = Math.pow(10, preFilterGainDB / 20.0);
+        this.postFilterMult = Math.pow(10, postFilterGainDB / 20.0);
+    }
+
     // Velocity Multiplier
     public void setVelocity(double velocityMult){
         this.velocityMult = velocityMult;
@@ -153,7 +161,9 @@ public class Voice implements AudioComponent{
             filter.setParameters(finalCutoff, this.filterResonance); // Update filter params
 
             // Process sample through filter
+            sample *= this.preFilterMult;
             sample = filter.processSample(sample);
+            sample *= this.postFilterMult;
 
             // Calculate Amp Envelope Value
             return ampEnvelope.processSample(sample) * this.velocityMult;

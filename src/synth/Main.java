@@ -36,19 +36,20 @@ public class Main {
             line.open(audioFormat, 1024);
             line.start();
 
-            Synthesiser synth = new Synthesiser(16);
+            Synthesiser synth = new Synthesiser(9);
 
             synth.loadPatch(
                     Synthesiser.Waveform.SAW,
-                    20000, 0.001, 3000,
-                    0.6, 0.8, 0.1, 0.5,
-                    0.01, 0.2, 0.5, 0.2
+                    500, 5, 3000,
+                    0.6, 0.8, 0.1, 0.01,
+                    0.01, 0.2, 0.5, 1,
+                    -7, 0
             );
 
             byte[] arpeggioMIDINotes = {
                     45, 48, 52, 55, // A2, C3, E3, G3
                     57, 60, 55, // A3, C4, E4
-                    //69, 72, 76, // A4, C5, E5
+                    69, 72, 67, // A4, C5, E5
                     //81, 84, 88, // A5, C6, E6
                     //93, 96, 100 // A6, C7, E7
             };
@@ -58,7 +59,7 @@ public class Main {
 
             long samplesElapsed = 0;
             int currentNoteIndex = 0;
-            byte[] buffer = new byte[64];
+            byte[] buffer = new byte[1024];
             System.out.println("Playing arpeggio to '" + outputDeviceName + "'... Stop the program to exit.");
 
             // Trigger the first note
@@ -77,7 +78,7 @@ public class Main {
                     }
 
                     // 3. Get the final mixed sample from the Synthesiser
-                    double sample = synth.processSample(0.0) * 0.2; // Apply a master volume
+                    double sample = synth.processSample(0.0);
 
                     short pcmSample = (short) (sample * Short.MAX_VALUE);
                     buffer[i] = (byte) (pcmSample >> 8);

@@ -23,20 +23,26 @@ public class Synthesiser implements AudioComponent{
     private double filterModAmount;
 
     // Filter Envelope
-    protected double filterAttackTime;
-    protected double filterDecayTime;
-    protected double filterSustainLevel;
-    protected double filterReleaseTime;
+    private double filterAttackTime;
+    private double filterDecayTime;
+    private double filterSustainLevel;
+    private double filterReleaseTime;
 
     // Amp Envelope
-    protected double ampAttackTime;
-    protected double ampDecayTime;
-    protected double ampSustainLevel;
-    protected double ampReleaseTime;
+    private double ampAttackTime;
+    private double ampDecayTime;
+    private double ampSustainLevel;
+    private double ampReleaseTime;
+    
+    // Gain Staging
+    private double preFilterGainDB;
+    private double postFilterGainDB;
+    private double mixStageAttenuation;
 
     // Constructor
     public Synthesiser(double noVoices) {
         this.noVoices = noVoices;
+        this.mixStageAttenuation = 1.0 / Math.sqrt(this.noVoices);
         this.sampleRate = AudioConstants.SAMPLE_RATE; // Point of dependency injection for entire voice stack
         this.voices = new ArrayList<Voice>();
 
@@ -53,7 +59,9 @@ public class Synthesiser implements AudioComponent{
                 0.005,   // ampAttackTime
                 0.3,     // ampDecayTime
                 0.5,     // ampSustainLevel
-                0.5      // ampReleaseTime
+                0.5,     // ampReleaseTime
+                -5.0,    // Pre Filter Gain (db)
+                0.0      // Post Filter Gain (db)
         );
     }
 
@@ -68,7 +76,9 @@ public class Synthesiser implements AudioComponent{
                           double ampAttackTime,
                           double ampDecayTime,
                           double ampSustainLevel,
-                          double ampReleaseTime) {
+                          double ampReleaseTime,
+                          double preFilterGainDB,
+                          double postFilterGainDB) {
 
         // Store the master settings for the synth
         updateWaveForm(waveform); // Clears and re-populates voice bank with new waveform
@@ -83,6 +93,8 @@ public class Synthesiser implements AudioComponent{
         this.ampDecayTime = ampDecayTime;
         this.ampSustainLevel = ampSustainLevel;
         this.ampReleaseTime = ampReleaseTime;
+        this.preFilterGainDB = preFilterGainDB;
+        this.postFilterGainDB = postFilterGainDB;
         applyPatch();
     }
 
@@ -102,10 +114,14 @@ public class Synthesiser implements AudioComponent{
             voice.setAmpEnvelope(this.ampAttackTime, this.ampDecayTime, this.ampSustainLevel, this.ampReleaseTime);
             voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
             voice.setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModAmount);
+            voice.setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
         }
     }
 
     public void noteOn(byte pitchMIDI, double velocity) {
+        // Check if note is already being played and switch it off if it is
+        noteOff(pitchMIDI);
+
         for (Voice voice : voices) {
             if (!voice.isActive()) { // Find first inactive voice
                 // Apply Patch
@@ -114,6 +130,7 @@ public class Synthesiser implements AudioComponent{
                 voice.setAmpEnvelope(this.ampAttackTime, this.ampDecayTime, this.ampSustainLevel, this.ampReleaseTime);
                 voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
                 voice.setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModAmount);
+                voice.setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
                 voice.noteOn();
                 return;
             }
@@ -131,11 +148,10 @@ public class Synthesiser implements AudioComponent{
 
     public double processSample(double input){
         double sampleMixedSum = 0.0;
-        double voiceVolume = 0.5;
 
         for(Voice voice:voices){
             if(voice.isActive()){
-                sampleMixedSum += (voiceVolume * voice.processSample(0.0));
+                sampleMixedSum += (this.mixStageAttenuation * voice.processSample(0.0));
             }
         }
 
