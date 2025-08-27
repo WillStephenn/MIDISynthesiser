@@ -5,6 +5,7 @@ import synth.utils.AudioConstants;
 import javax.sound.sampled.*;
 
 public class Main {
+    private static double masterVolume = 1;
 
     public static SourceDataLine getOutputLine(String name, AudioFormat format) throws LineUnavailableException {
         SourceDataLine line = null;
@@ -27,23 +28,25 @@ public class Main {
     public static void main(String[] args) {
         AudioFormat audioFormat = new AudioFormat(
                 (float) AudioConstants.SAMPLE_RATE,
-                16, 1, true, true
+                16, 2, true, true
         );
 
         String outputDeviceName = "BlackHole 2ch";
 
         try (SourceDataLine line = getOutputLine(outputDeviceName, audioFormat)) {
-            line.open(audioFormat, 1024);
+            line.open(audioFormat, 8192);
             line.start();
 
             Synthesiser synth = new Synthesiser(9);
 
             synth.loadPatch(
                     Synthesiser.Waveform.SAW,
-                    500, 5, 3000,
+                    500, 7, 3000,
                     0.6, 0.8, 0.1, 0.01,
                     0.01, 0.2, 0.5, 1,
-                    -7, 0
+                    -10, 0,
+                    Synthesiser.Waveform.SINE, 0.5,
+                    1.0
             );
 
             byte[] arpeggioMIDINotes = {
@@ -66,7 +69,7 @@ public class Main {
             synth.noteOn(arpeggioMIDINotes[0], 1.0);
 
             while (true) {
-                for (int i = 0; i < buffer.length; i += 2) {
+                for (int i = 0; i < buffer.length; i += 4) {
                     // Check if it's time to switch notes
                     if (samplesElapsed > 0 && samplesElapsed % samplesPerNote == 0) {
                         byte lastNote = arpeggioMIDINotes[currentNoteIndex];
@@ -76,13 +79,21 @@ public class Main {
                         byte newNote = arpeggioMIDINotes[currentNoteIndex];
                         synth.noteOn(newNote, 1.0); // Start the new note
                     }
+                    // Get the stereo sample pair from the synth
+                    double[] stereoSample = synth.processSample();
+                    double leftSample = stereoSample[0];
+                    double rightSample = stereoSample[1];
 
-                    // 3. Get the final mixed sample from the Synthesiser
-                    double sample = synth.processSample(0.0);
+                    // Convert left sample to bytes
+                    short pcmLeft = (short) (leftSample * Short.MAX_VALUE);
+                    buffer[i] = (byte) (pcmLeft >> 8);
+                    buffer[i + 1] = (byte) (pcmLeft & 0xFF);
 
-                    short pcmSample = (short) (sample * Short.MAX_VALUE);
-                    buffer[i] = (byte) (pcmSample >> 8);
-                    buffer[i + 1] = (byte) (pcmSample & 0xFF);
+                    // Convert right sample to bytes
+                    short pcmRight = (short) (rightSample * Short.MAX_VALUE);
+                    buffer[i + 2] = (byte) (pcmRight >> 8);
+                    buffer[i + 3] = (byte) (pcmRight & 0xFF);
+
                     samplesElapsed++;
                 }
                 line.write(buffer, 0, buffer.length);

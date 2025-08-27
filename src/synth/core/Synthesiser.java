@@ -1,14 +1,16 @@
 package synth.core;
 
+import synth.components.oscillators.Oscillator;
 import synth.utils.AudioConstants;
 import synth.core.Voice;
 import java.util.ArrayList;
 
-public class Synthesiser implements AudioComponent{
+public class Synthesiser{
     // Control all the voices. Bundles them up in an arraylist ready to be shipped to the buffer.
     private ArrayList<Voice> voices;
     private final double noVoices;
     private final double sampleRate;
+    private final double controlRate;
 
     // Master Configs (synth-wide settings)
     // Oscillator
@@ -39,19 +41,27 @@ public class Synthesiser implements AudioComponent{
     private double postFilterGainDB;
     private double mixStageAttenuation;
 
+    // LFO
+    private Waveform LFO;
+    private double LFOFrequency;
+
+    // Panning
+    private double panDepth;
+
     // Constructor
     public Synthesiser(double noVoices) {
         this.noVoices = noVoices;
         this.mixStageAttenuation = 1.0 / Math.sqrt(this.noVoices);
         this.sampleRate = AudioConstants.SAMPLE_RATE; // Point of dependency injection for entire voice stack
+        this.controlRate = AudioConstants.CONTROL_RATE;
         this.voices = new ArrayList<Voice>();
 
         // Default Synth Patch
         loadPatch( // Applies default patch and populates the voice bank
-                Waveform.SAW, // Waveform
-                500, // filterCutoff
-                5,     // filterResonance
-                2000.0,     // filterModAmount (Hz)
+                Waveform.SAW, // Synth Waveform
+                500,     // filterCutoff
+                5,       // filterResonance
+                2000.0,  // filterModAmount (Hz)
                 0.01,    // filterAttackTime
                 0.4,     // filterDecayTime
                 0.5,     // filterSustainLevel
@@ -61,7 +71,10 @@ public class Synthesiser implements AudioComponent{
                 0.5,     // ampSustainLevel
                 0.5,     // ampReleaseTime
                 -5.0,    // Pre Filter Gain (db)
-                0.0      // Post Filter Gain (db)
+                0.0,     // Post Filter Gain (db)
+                Waveform.SINE, //LFO Waveform
+                0.5,     // LFO Frequency
+                1        // Pan Depth
         );
     }
 
@@ -78,10 +91,13 @@ public class Synthesiser implements AudioComponent{
                           double ampSustainLevel,
                           double ampReleaseTime,
                           double preFilterGainDB,
-                          double postFilterGainDB) {
+                          double postFilterGainDB,
+                          Waveform LFO,
+                          double LFOFrequency,
+                          double panDepth) {
 
         // Store the master settings for the synth
-        updateWaveForm(waveform); // Clears and re-populates voice bank with new waveform
+        updateWaveForm(waveform, LFO); // Clears and re-populates voice bank with new waveform
         this.filterCutoff = filterCutoff;
         this.filterResonance = filterResonance;
         this.filterModAmount = filterModAmount;
@@ -95,16 +111,19 @@ public class Synthesiser implements AudioComponent{
         this.ampReleaseTime = ampReleaseTime;
         this.preFilterGainDB = preFilterGainDB;
         this.postFilterGainDB = postFilterGainDB;
+        this.LFOFrequency = LFOFrequency;
+        this.panDepth = panDepth;
         applyPatch();
     }
 
-    public void updateWaveForm(Waveform waveform){
+    public void updateWaveForm(Waveform waveform, Waveform LFO){
         // Scrap all voices and repopulate the voice bank
-        if (this.waveform != waveform){
+        if (this.waveform != waveform || this.LFO != LFO){
             this.waveform = waveform;
+            this.LFO = LFO;
             voices.clear();
             for (int i = 0; i < this.noVoices; i++) {
-                voices.add(new Voice(this.waveform, 0, this.sampleRate));
+                voices.add(new Voice(this.waveform, 0, this.sampleRate, this.LFO, this.controlRate));
             }
         }
     }
@@ -115,6 +134,8 @@ public class Synthesiser implements AudioComponent{
             voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
             voice.setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModAmount);
             voice.setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
+            voice.setPannDepth(this.panDepth);
+            voice.setLFOFreq(this.LFOFrequency);
         }
     }
 
@@ -131,6 +152,8 @@ public class Synthesiser implements AudioComponent{
                 voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
                 voice.setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModAmount);
                 voice.setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
+                voice.setPannDepth(this.panDepth);
+                voice.setLFOFreq(this.LFOFrequency);
                 voice.noteOn();
                 return;
             }
@@ -146,23 +169,23 @@ public class Synthesiser implements AudioComponent{
         }
     }
 
-    public double processSample(double input){
-        double sampleMixedSum = 0.0;
+    public double[] processSample(){
+        double sampleMixedL = 0.0;
+        double sampleMixedR = 0.0;
 
         for(Voice voice:voices){
             if(voice.isActive()){
-                sampleMixedSum += (this.mixStageAttenuation * voice.processSample(0.0));
+                double[] stereoSampleMixed = voice.processSampleStereo(0.0);
+                sampleMixedL += stereoSampleMixed[0] * this.mixStageAttenuation;
+                sampleMixedR += stereoSampleMixed[1] * this.mixStageAttenuation;
             }
         }
 
         // Hard Clipping
-        if (sampleMixedSum > 1.0) {
-            sampleMixedSum = 1.0;
-        } else if (sampleMixedSum < -1.0) {
-            sampleMixedSum = -1.0;
-        }
+        sampleMixedL = Math.max(-1.0, Math.min(1.0, sampleMixedL));
+        sampleMixedR = Math.max(-1.0, Math.min(1.0, sampleMixedR));
 
-        return sampleMixedSum;
+        return new double[]{sampleMixedL, sampleMixedR};
     }
 
 }

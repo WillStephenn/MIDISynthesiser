@@ -26,14 +26,24 @@ public class Voice implements AudioComponent{
     private double filterCutoff;
     private double filterResonance;
     private double filterModAmount;
+    private final double controlRate;
+    private double controlRateCounter;
 
-    // Gain StagingL
+    // Gain Staging
     private double velocityMult;
     private double preFilterMult;
     private double postFilterMult;
 
+    // LFO
+    private final Oscillator LFO;
+    private double LFOFreq;
+
+    // Panning
+    private double panPosition;
+    private double panDepth;
+
     //Constructor
-    public Voice (Synthesiser.Waveform waveform, double pitchFrequency, double sampleRate){
+    public Voice (Synthesiser.Waveform waveform, double pitchFrequency, double sampleRate, Synthesiser.Waveform LFO, double controlRate){
         // Audio Components
         this.filter = new ResonantLowPassFilter(sampleRate);
         this.ampEnvelope = new Envelope(sampleRate);
@@ -44,8 +54,10 @@ public class Voice implements AudioComponent{
         this.filterResonance = 0.01;
         this.filterModAmount = 2000;
         this.filter.setParameters(this.filterCutoff, this.filterResonance);
+        this.controlRate = controlRate;
+        this.controlRateCounter = 0;
 
-        // Oscillator switch
+        // Synth Oscillator switch
         switch (waveform){
             case SINE:
                 this.oscillator = new SineOscillator(sampleRate);
@@ -60,27 +72,57 @@ public class Voice implements AudioComponent{
                 throw new IllegalArgumentException("Unsupported waveform: " + waveform);
         }
 
+        // LFO Oscillator switch
+        switch (LFO){
+            case SINE:
+                this.LFO = new SineOscillator(sampleRate);
+                break;
+            case SAW:
+                this.LFO = new SawOscillator(sampleRate);
+                break;
+            case TRIANGLE:
+                this.LFO = new TriangleOscillator(sampleRate);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported waveform: " + waveform);
+        }
+        // LFO
+        this.LFO.setFrequency(0.5);
+
         // Set Oscillator starting pitch
         this.pitchFrequency = pitchFrequency;
         this.oscillator.setFrequency(this.pitchFrequency);
 
         // Set Default Velocity
         this.velocityMult = 1.0;
+
+
     }
 
     // Facade Setter Methods
     // Oscillators:
-
     public void setOscillatorPitch(byte pitchMIDI){
         this.pitchMIDI = pitchMIDI;
         this.oscillator.setFrequency(440.0 * Math.pow(2.0, (pitchMIDI - 69) / 12.0));
     }
+
     public byte getPitchMIDI(){
         return this.pitchMIDI;
     }
 
     public double getOscillatorFrequency(){
         return this.pitchFrequency;
+    }
+
+    // LFO:
+    public void setLFOFreq(double frequency){
+        this.LFOFreq = frequency;
+    }
+
+    // Panning:
+    public void setPannDepth(double panDepth){
+        if(panDepth >= 1 || panDepth <= -1){this.panDepth = 1;} // ill think of a nicer way to this later
+        else {this.panDepth = panDepth;}
     }
 
     // Amp Envelope:
@@ -152,13 +194,20 @@ public class Voice implements AudioComponent{
     }
 
     public double processSample(double input) {
+            // Control Rate Logic, updates slow moving expensive elements every 'controlRate' samples
+            if(controlRateCounter == 0) {
+
+                // Calculate filter modulation based on the filter env values
+                double filterEnvValue = filterEnvelope.processSample(1.0); // Grab filter multiplier from filter envelope
+                double finalCutoff = filterCutoff + (filterEnvValue * filterModAmount); // Modulate cutoff based on the envelope multiplier
+                filter.setParameters(finalCutoff, this.filterResonance); // Update filter params
+
+            }
+            this.controlRateCounter = (this.controlRateCounter + 1) % this.controlRate;
+
+            // Sample Rate Logic, updates every sample
             // Generate next oscillator sample
             double sample = oscillator.processSample(input);
-
-            // Calculate filter modulation based on the filter env values
-            double filterEnvValue = filterEnvelope.processSample(1.0); // Grab filter multiplier from filter envelope
-            double finalCutoff = filterCutoff + (filterEnvValue * filterModAmount); // Modulate cutoff based on the envelope multiplier
-            filter.setParameters(finalCutoff, this.filterResonance); // Update filter params
 
             // Process sample through filter
             sample *= this.preFilterMult;
@@ -167,5 +216,22 @@ public class Voice implements AudioComponent{
 
             // Calculate Amp Envelope Value
             return ampEnvelope.processSample(sample) * this.velocityMult;
+    }
+
+    public double[] processSampleStereo(double input){
+
+        // Audio Rate Logic
+
+        // Conversion from Mono sample to Stereo, applies panning modulated by LFO
+        double monoSample = processSample(input);
+        this.panPosition = LFO.processSample(0.0) * this.panDepth;
+
+        // Apply the Pan Law
+        double panAngle = (this.panPosition + 1.0) * (Math.PI / 4.0);
+        double leftGain = Math.cos(panAngle);
+        double rightGain = Math.sin(panAngle);
+
+        // Return the final stereo sample pair
+        return new double[]{monoSample * leftGain, monoSample * rightGain};
     }
 }
