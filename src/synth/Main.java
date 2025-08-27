@@ -1,5 +1,6 @@
 package synth;
 
+import synth.core.Synthesiser;
 import synth.core.Voice;
 import synth.utils.AudioConstants;
 
@@ -53,7 +54,7 @@ public class Main {
             double noteDurationInSeconds = 0.2;
             int samplesPerNote = (int) (noteDurationInSeconds * AudioConstants.SAMPLE_RATE);
 
-            Voice voice = new Voice(Voice.Waveform.SAW, arpeggioFrequencies[0], AudioConstants.SAMPLE_RATE);
+            Voice voice = new Voice(Synthesiser.Waveform.SAW, arpeggioFrequencies[0], AudioConstants.SAMPLE_RATE);
             voice.ampEnvelope.setEnvelope(0.01, 0.01, 0.6, 0);
             voice.filterEnvelope.setEnvelope(0.1, 0.1, 0.01, 0.5);
             voice.setFilterParameters(200, 10);

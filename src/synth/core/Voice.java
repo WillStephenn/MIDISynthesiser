@@ -15,13 +15,10 @@ public class Voice {
     // Audio Component Objects
     private final Oscillator oscillator;
     private final ResonantLowPassFilter filter;
-    public final Envelope ampEnvelope;
-    public final Envelope filterEnvelope;
+    private final Envelope ampEnvelope;
+    private final Envelope filterEnvelope;
 
     // Oscillator Settings
-    public enum Waveform{
-        SINE, SAW, TRIANGLE
-    }
     private double pitchFrequency;
 
     // Filter settings
@@ -29,8 +26,11 @@ public class Voice {
     private double filterResonance;
     private double filterModAmount;
 
+    // Per Voice Amplitude
+    private double velocityMult;
+
     //Constructor
-    public Voice (Waveform waveform, double pitchFrequency, double sampleRate){
+    public Voice (Synthesiser.Waveform waveform, double pitchFrequency, double sampleRate){
         // Audio Components
         this.filter = new ResonantLowPassFilter(sampleRate);
         this.ampEnvelope = new Envelope(sampleRate);
@@ -60,12 +60,18 @@ public class Voice {
         // Set Oscillator starting pitch
         this.pitchFrequency = pitchFrequency;
         this.oscillator.setFrequency(this.pitchFrequency);
+
+        // Set Default Velocity
+        this.velocityMult = 1.0;
     }
 
-    // Facade Methods
+    // Facade Setter Methods
     // Oscillators:
     public void setOscillatorFrequency(double frequency){
         this.oscillator.setFrequency(frequency);
+    }
+    public void getOscillatorFrequency(){
+        return this.pitchFrequency;
     }
 
     // Amp Envelope:
@@ -81,6 +87,9 @@ public class Voice {
     public void setAmpEnvelopeReleaseTime(double seconds){
         this.ampEnvelope.setReleaseTime(seconds);
     }
+    public void setAmpEnvelope(double attackTime, double decayTime, double sustainLevel, double releaseTime){
+        this.ampEnvelope.setEnvelope(attackTime, decayTime, sustainLevel, releaseTime);
+    }
 
     // Filter Envelope:
     public void setFilterEnvelopeAttackTime(double seconds){
@@ -95,6 +104,9 @@ public class Voice {
     public void setFilterEnvelopeReleaseTime(double seconds){
         this.filterEnvelope.setReleaseTime(seconds);
     }
+    public void setFilterEnvelope(double attackTime, double decayTime, double sustainLevel, double releaseTime){
+        this.filterEnvelope.setEnvelope(attackTime, decayTime, sustainLevel, releaseTime);
+    }
 
     // Filter:
     public void setFilterParameters(double frequency, double resonance){
@@ -103,6 +115,12 @@ public class Voice {
         this.filter.setParameters(frequency, resonance);
     }
 
+    // Velocity Multiplier
+    public void setVelocity(double velocityMult){
+        this.velocityMult = velocityMult;
+    }
+
+    // Voice State Control
     public void noteOn(){
         ampEnvelope.noteOn();
         filterEnvelope.noteOn();
@@ -111,6 +129,10 @@ public class Voice {
     public void noteOff(){
         ampEnvelope.noteOff();
         filterEnvelope.noteOff();
+    }
+
+    public boolean isActive() {
+        return ampEnvelope.getStage() != Envelope.Stage.IDLE;
     }
 
     public double processSample(double input) {
@@ -126,6 +148,6 @@ public class Voice {
             sample = filter.processSample(sample);
 
             // Calculate Amp Envelope Value
-            return ampEnvelope.processSample(sample);
+            return ampEnvelope.processSample(sample) * this.velocityMult;
     }
 }

@@ -32,8 +32,14 @@ public class Envelope implements AudioComponent {
         setEnvelope(2, 2, 0.5,  3);
     }
 
+    // Envelope Setters
+
     public void setStage(Stage newStage){
         this.currentStage = newStage;
+    }
+
+    public Stage getStage(){
+        return this.currentStage;
     }
 
     public void setAttackTime(double seconds){
@@ -74,6 +80,8 @@ public class Envelope implements AudioComponent {
         setDecayTime(decayTime);
         setReleaseTime(releaseTime);
     }
+
+    // Envelope State Management
 
     public void noteOn(){
         this.currentStage = Stage.ATTACK;
