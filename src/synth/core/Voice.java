@@ -202,6 +202,8 @@ public class Voice implements AudioComponent{
                 double finalCutoff = filterCutoff + (filterEnvValue * filterModAmount); // Modulate cutoff based on the envelope multiplier
                 filter.setParameters(finalCutoff, this.filterResonance); // Update filter params
 
+
+
             }
             this.controlRateCounter = (this.controlRateCounter + 1) % this.controlRate;
 

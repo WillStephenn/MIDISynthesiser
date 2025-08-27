@@ -72,7 +72,7 @@ public class Synthesiser{
                 0.5,     // ampReleaseTime
                 -5.0,    // Pre Filter Gain (db)
                 0.0,     // Post Filter Gain (db)
-                Waveform.SINE, //LFO Waveform
+                Waveform.TRIANGLE, //LFO Waveform
                 0.5,     // LFO Frequency
                 1        // Pan Depth
         );
