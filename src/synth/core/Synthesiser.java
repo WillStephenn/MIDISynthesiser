@@ -1,10 +1,10 @@
 package synth.core;
 
 import synth.utils.AudioConstants;
-
+import synth.core.Voice;
 import java.util.ArrayList;
 
-public class Synthesiser {
+public class Synthesiser implements AudioComponent{
     // Control all the voices. Bundles them up in an arraylist ready to be shipped to the buffer.
     private ArrayList<Voice> voices;
     private final double noVoices;
@@ -15,7 +15,6 @@ public class Synthesiser {
     public enum Waveform {
         SINE, SAW, TRIANGLE
     }
-
     private Waveform waveform;
 
     // Filter
@@ -37,29 +36,24 @@ public class Synthesiser {
 
     // Constructor
     public Synthesiser(double noVoices) {
-        this.noVoices = 16;
+        this.noVoices = noVoices;
         this.sampleRate = AudioConstants.SAMPLE_RATE; // Point of dependency injection for entire voice stack
         this.voices = new ArrayList<Voice>();
 
-        // Populate the synthesiser with inactive voices
-        for (int i = 0; i < this.noVoices; i++) {
-            voices.add(new Voice(Waveform.SAW, 0, this.sampleRate));
-        }
-
         // Default Synth Patch
-        loadPatch(
+        loadPatch( // Applies default patch and populates the voice bank
                 Waveform.SAW, // Waveform
-                20000.0, // filterCutoff: filter is wide open
-                0.1,     // filterResonance: low resonance
-                0.0,     // filterModAmount: no envelope modulation on the filter
-                0.01,    // filterAttackTime: fast attack
-                0.4,     // filterDecayTime: medium decay
-                0.0,     // filterSustainLevel: no sustain
-                0.4,     // filterReleaseTime: medium release
-                0.005,   // ampAttackTime: very fast attack for a percussive start
-                0.3,     // ampDecayTime: quick decay
-                0.2,     // ampSustainLevel: low sustain level
-                0.3      // ampReleaseTime: quick release
+                500, // filterCutoff
+                5,     // filterResonance
+                2000.0,     // filterModAmount (Hz)
+                0.01,    // filterAttackTime
+                0.4,     // filterDecayTime
+                0.5,     // filterSustainLevel
+                0.4,     // filterReleaseTime
+                0.005,   // ampAttackTime
+                0.3,     // ampDecayTime
+                0.5,     // ampSustainLevel
+                0.5      // ampReleaseTime
         );
     }
 
@@ -77,7 +71,7 @@ public class Synthesiser {
                           double ampReleaseTime) {
 
         // Store the master settings for the synth
-        this.waveform = waveform;
+        updateWaveForm(waveform); // Clears and re-populates voice bank with new waveform
         this.filterCutoff = filterCutoff;
         this.filterResonance = filterResonance;
         this.filterModAmount = filterModAmount;
@@ -89,36 +83,71 @@ public class Synthesiser {
         this.ampDecayTime = ampDecayTime;
         this.ampSustainLevel = ampSustainLevel;
         this.ampReleaseTime = ampReleaseTime;
+        applyPatch();
     }
 
-    public void noteOn(double pitchFrequency, double velocity) {
+    public void updateWaveForm(Waveform waveform){
+        // Scrap all voices and repopulate the voice bank
+        if (this.waveform != waveform){
+            this.waveform = waveform;
+            voices.clear();
+            for (int i = 0; i < this.noVoices; i++) {
+                voices.add(new Voice(this.waveform, 0, this.sampleRate));
+            }
+        }
+    }
+
+    public void applyPatch(){
+        for(Voice voice : voices){
+            voice.setAmpEnvelope(this.ampAttackTime, this.ampDecayTime, this.ampSustainLevel, this.ampReleaseTime);
+            voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
+            voice.setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModAmount);
+        }
+    }
+
+    public void noteOn(byte pitchMIDI, double velocity) {
         for (Voice voice : voices) {
             if (!voice.isActive()) { // Find first inactive voice
                 // Apply Patch
-                voice.setOscillatorFrequency(pitchFrequency);
+                voice.setOscillatorPitch(pitchMIDI);
                 voice.setVelocity(velocity);
                 voice.setAmpEnvelope(this.ampAttackTime, this.ampDecayTime, this.ampSustainLevel, this.ampReleaseTime);
                 voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
-                voice.setFilterParameters(this.filterCutoff, this.filterResonance);
+                voice.setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModAmount);
                 voice.noteOn();
+                return;
             }
         }
     }
-/*
-    public void noteOff(double pitchFrequency){
+
+    public void noteOff(byte pitchMIDI){
         for (Voice voice : voices){
-            if(pitchFrequency == voice.getOscillatorFrequency()){
+            if(voice.isActive() && (voice.getPitchMIDI() == pitchMIDI)){
                 voice.noteOff();
-                boolean wasRemoved = voices.remove(voice);
-                if (wasRemoved) {
-                    System.out.println("Voice was successfully removed.");
-                } else {
-                    System.out.println("Voice was not found in the list.");
-                }
-
+                return;
             }
-
         }
     }
-*/
+
+    public double processSample(double input){
+        double sampleMixedSum = 0.0;
+        double voiceVolume = 0.5;
+
+        for(Voice voice:voices){
+            if(voice.isActive()){
+                sampleMixedSum += (voiceVolume * voice.processSample(0.0));
+            }
+        }
+
+        // Hard Clipping
+        if (sampleMixedSum > 1.0) {
+            sampleMixedSum = 1.0;
+        } else if (sampleMixedSum < -1.0) {
+            sampleMixedSum = -1.0;
+        }
+
+        return sampleMixedSum;
+    }
+
 }
+

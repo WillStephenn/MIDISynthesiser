@@ -7,7 +7,7 @@ import synth.components.oscillators.SawOscillator;
 import synth.components.oscillators.SineOscillator;
 import synth.components.oscillators.TriangleOscillator;
 
-public class Voice {
+public class Voice implements AudioComponent{
     // The voice object encapsulates all of the audio components into one:
     // Oscillator -> Amp Envelope -> Resonant Low Pass Filter
     // It provides setters for all encapsulated elements, acting as a facade.
@@ -19,6 +19,7 @@ public class Voice {
     private final Envelope filterEnvelope;
 
     // Oscillator Settings
+    private byte pitchMIDI;
     private double pitchFrequency;
 
     // Filter settings
@@ -67,10 +68,16 @@ public class Voice {
 
     // Facade Setter Methods
     // Oscillators:
-    public void setOscillatorFrequency(double frequency){
-        this.oscillator.setFrequency(frequency);
+
+    public void setOscillatorPitch(byte pitchMIDI){
+        this.pitchMIDI = pitchMIDI;
+        this.oscillator.setFrequency(440.0 * Math.pow(2.0, (pitchMIDI - 69) / 12.0));
     }
-    public void getOscillatorFrequency(){
+    public byte getPitchMIDI(){
+        return this.pitchMIDI;
+    }
+
+    public double getOscillatorFrequency(){
         return this.pitchFrequency;
     }
 
@@ -109,9 +116,10 @@ public class Voice {
     }
 
     // Filter:
-    public void setFilterParameters(double frequency, double resonance){
+    public void setFilterParameters(double frequency, double resonance, double filterModAmount){
         this.filterCutoff = frequency;
         this.filterResonance = resonance;
+        this.filterModAmount = filterModAmount;
         this.filter.setParameters(frequency, resonance);
     }
 

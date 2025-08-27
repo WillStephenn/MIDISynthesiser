@@ -1,9 +1,7 @@
 package synth;
 
 import synth.core.Synthesiser;
-import synth.core.Voice;
 import synth.utils.AudioConstants;
-
 import javax.sound.sampled.*;
 
 public class Main {
@@ -38,55 +36,52 @@ public class Main {
             line.open(audioFormat, 1024);
             line.start();
 
-            double[] arpeggioFrequencies = {
-                    // Octave 1
-                    110.00, 130.81, 164.81,
-                    // Octave 2
-                    220.00, 261.63, 329.63,
-                    // Octave 3
-                    440.00, 523.25, 659.26,
-                    // Octave 4
-                    880.00, 1046.50, 1318.51,
-                    // Octave 5
-                    1760.00, 2093.00, 2637.02
+            Synthesiser synth = new Synthesiser(16);
+
+            synth.loadPatch(
+                    Synthesiser.Waveform.SAW,
+                    20000, 0.001, 3000,
+                    0.6, 0.8, 0.1, 0.5,
+                    0.01, 0.2, 0.5, 0.2
+            );
+
+            byte[] arpeggioMIDINotes = {
+                    45, 48, 52, 55, // A2, C3, E3, G3
+                    57, 60, 55, // A3, C4, E4
+                    //69, 72, 76, // A4, C5, E5
+                    //81, 84, 88, // A5, C6, E6
+                    //93, 96, 100 // A6, C7, E7
             };
 
-            double noteDurationInSeconds = 0.2;
+            double noteDurationInSeconds = 0.25;
             int samplesPerNote = (int) (noteDurationInSeconds * AudioConstants.SAMPLE_RATE);
-
-            Voice voice = new Voice(Synthesiser.Waveform.SAW, arpeggioFrequencies[0], AudioConstants.SAMPLE_RATE);
-            voice.ampEnvelope.setEnvelope(0.01, 0.01, 0.6, 0);
-            voice.filterEnvelope.setEnvelope(0.1, 0.1, 0.01, 0.5);
-            voice.setFilterParameters(200, 10);
 
             long samplesElapsed = 0;
             int currentNoteIndex = 0;
+            byte[] buffer = new byte[64];
+            System.out.println("Playing arpeggio to '" + outputDeviceName + "'... Stop the program to exit.");
 
-            byte[] buffer = new byte[128];
-            System.out.println("Playing 5-octave A minor arpeggio to '" + outputDeviceName + "'... Stop the program to exit.");
-
-            voice.noteOn();
+            // Trigger the first note
+            synth.noteOn(arpeggioMIDINotes[0], 1.0);
 
             while (true) {
                 for (int i = 0; i < buffer.length; i += 2) {
-
+                    // Check if it's time to switch notes
                     if (samplesElapsed > 0 && samplesElapsed % samplesPerNote == 0) {
-                        voice.noteOff();
-                        currentNoteIndex = (currentNoteIndex + 1) % arpeggioFrequencies.length;
-                        double newFrequency = arpeggioFrequencies[currentNoteIndex];
-                        voice.setOscillatorFrequency(newFrequency);
-                        voice.noteOn();
+                        byte lastNote = arpeggioMIDINotes[currentNoteIndex];
+                        synth.noteOff(lastNote); // Stop the old note
+
+                        currentNoteIndex = (currentNoteIndex + 1) % arpeggioMIDINotes.length;
+                        byte newNote = arpeggioMIDINotes[currentNoteIndex];
+                        synth.noteOn(newNote, 1.0); // Start the new note
                     }
 
-                    double volume = 0.1;
-
-                    double sample = voice.processSample(0.0);
-                    sample = sample * volume;
+                    // 3. Get the final mixed sample from the Synthesiser
+                    double sample = synth.processSample(0.0) * 0.2; // Apply a master volume
 
                     short pcmSample = (short) (sample * Short.MAX_VALUE);
                     buffer[i] = (byte) (pcmSample >> 8);
                     buffer[i + 1] = (byte) (pcmSample & 0xFF);
-
                     samplesElapsed++;
                 }
                 line.write(buffer, 0, buffer.length);
