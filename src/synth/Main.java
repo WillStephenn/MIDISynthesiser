@@ -1,11 +1,10 @@
 package synth;
 
-import synth.MIDI.MidiFilePLayer;
+import synth.MIDI.MidiFilePlayer;
 import synth.core.Synthesiser;
 import synth.utils.AudioConstants;
 import javax.sound.sampled.*;
 import javax.sound.midi.Sequencer;
-
 
 public class Main {
 
@@ -36,28 +35,29 @@ public class Main {
         String outputDeviceName = "BlackHole 2ch";
 
         try (SourceDataLine line = getOutputLine(outputDeviceName, audioFormat)) {
-            line.open(audioFormat, 8192);
+            line.open(audioFormat, 8192 * 2);
             line.start();
 
             Synthesiser synth = new Synthesiser(16);
 
             synth.loadPatch(
                     Synthesiser.Waveform.SAW,
-                    1000, 5, 2000,
-                    0.01, 0.3, 0.5, 0.5,
-                    0.005, 0.1, 0.8, 0.5,
+                    1000, 2, 2000,
+                    0.01, 0.3, 0.5, 0.1,
+                    0.005, 0.1, 0.8, 0.3,
                     -3.0, 0.0,
-                    Synthesiser.Waveform.SINE, 0.5,
-                    1.0
+                    Synthesiser.Waveform.SINE, 0.2,
+                    1
             );
 
             // --- MIDI FILE PLAYBACK ---
-            MidiFilePLayer midiPlayer = new MidiFilePLayer(synth);
+            MidiFilePlayer midiPlayer = new MidiFilePlayer(synth);
             Sequencer sequencer = midiPlayer.playMidiFile("midi/Silhuette.mid");
+
             // --- AUDIO PROCESSING LOOP ---
             byte[] buffer = new byte[1024];
 
-            while (sequencer != null && sequencer.isRunning()) {
+            while ((sequencer != null && sequencer.isRunning()) || synth.anyVoicesActive()) {
                 for (int i = 0; i < buffer.length; i += 4) {
                     double[] stereoSample = synth.processSample();
                     double leftSample = stereoSample[0];

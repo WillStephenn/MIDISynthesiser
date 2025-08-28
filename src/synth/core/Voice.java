@@ -35,19 +35,21 @@ public class Voice implements AudioComponent{
     private double postFilterMult;
 
     // LFO
-    private final Oscillator LFO;
     private double LFOFreq;
 
     // Panning
     private double panPosition;
-    private double panDepth;
+    private double leftGain;
+    private double rightGain;
 
     //Constructor
-    public Voice (Synthesiser.Waveform waveform, double pitchFrequency, double sampleRate, Synthesiser.Waveform LFO, double controlRate){
+    public Voice (Synthesiser.Waveform waveform, double pitchFrequency, double sampleRate, double controlRate, double panPosition){
         // Audio Components
         this.filter = new ResonantLowPassFilter(sampleRate);
         this.ampEnvelope = new Envelope(sampleRate);
         this.filterEnvelope = new Envelope(sampleRate);
+
+        setPanPosition(panPosition);
 
         // Filter Defaults
         this.filterCutoff = 20000;
@@ -72,31 +74,12 @@ public class Voice implements AudioComponent{
                 throw new IllegalArgumentException("Unsupported waveform: " + waveform);
         }
 
-        // LFO Oscillator switch
-        switch (LFO){
-            case SINE:
-                this.LFO = new SineOscillator(sampleRate);
-                break;
-            case SAW:
-                this.LFO = new SawOscillator(sampleRate);
-                break;
-            case TRIANGLE:
-                this.LFO = new TriangleOscillator(sampleRate);
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported waveform: " + waveform);
-        }
-        // LFO
-        this.LFO.setFrequency(0.5);
-
         // Set Oscillator starting pitch
         this.pitchFrequency = pitchFrequency;
         this.oscillator.setFrequency(this.pitchFrequency);
 
         // Set Default Velocity
         this.velocityMult = 1.0;
-
-
     }
 
     // Facade Setter Methods
@@ -114,15 +97,13 @@ public class Voice implements AudioComponent{
         return this.pitchFrequency;
     }
 
-    // LFO:
-    public void setLFOFreq(double frequency){
-        this.LFOFreq = frequency;
-    }
-
     // Panning:
-    public void setPannDepth(double panDepth){
-        if(panDepth >= 1 || panDepth <= -1){this.panDepth = 1;} // ill think of a nicer way to this later
-        else {this.panDepth = panDepth;}
+    public void setPanPosition(double panPosition){
+        // Apply the Pan Law
+        this.panPosition = panPosition;
+        double panAngle = (this.panPosition + 1.0) * (Math.PI / 4.0);
+        this.leftGain = Math.cos(panAngle);
+        this.rightGain = Math.sin(panAngle);
     }
 
     // Amp Envelope:
@@ -198,6 +179,7 @@ public class Voice implements AudioComponent{
             if(controlRateCounter == 0) {
 
                 // Calculate filter modulation based on the filter env values
+
                 double filterEnvValue = filterEnvelope.processSample(1.0); // Grab filter multiplier from filter envelope
                 double finalCutoff = filterCutoff + (filterEnvValue * filterModAmount); // Modulate cutoff based on the envelope multiplier
                 filter.setParameters(finalCutoff, this.filterResonance); // Update filter params
@@ -222,18 +204,8 @@ public class Voice implements AudioComponent{
 
     public double[] processSampleStereo(double input){
 
-        // Audio Rate Logic
-
         // Conversion from Mono sample to Stereo, applies panning modulated by LFO
         double monoSample = processSample(input);
-        this.panPosition = LFO.processSample(0.0) * this.panDepth;
-
-        // Apply the Pan Law
-        double panAngle = (this.panPosition + 1.0) * (Math.PI / 4.0);
-        double leftGain = Math.cos(panAngle);
-        double rightGain = Math.sin(panAngle);
-
-        // Return the final stereo sample pair
         return new double[]{monoSample * leftGain, monoSample * rightGain};
     }
 }

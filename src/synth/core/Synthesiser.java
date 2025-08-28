@@ -1,8 +1,11 @@
 package synth.core;
 
 import synth.components.oscillators.Oscillator;
+import synth.components.oscillators.SawOscillator;
+import synth.components.oscillators.SineOscillator;
+import synth.components.oscillators.TriangleOscillator;
 import synth.utils.AudioConstants;
-import synth.core.Voice;
+
 import java.util.ArrayList;
 
 public class Synthesiser{
@@ -42,8 +45,10 @@ public class Synthesiser{
     private double mixStageAttenuation;
 
     // LFO
-    private Waveform LFO;
+    private Oscillator LFO;
+    private Waveform LFOWaveForm;
     private double LFOFrequency;
+    private double LFOPosition;
 
     // Panning
     private double panDepth;
@@ -92,12 +97,13 @@ public class Synthesiser{
                           double ampReleaseTime,
                           double preFilterGainDB,
                           double postFilterGainDB,
-                          Waveform LFO,
+                          Waveform LFOWaveForm,
                           double LFOFrequency,
                           double panDepth) {
 
         // Store the master settings for the synth
-        updateWaveForm(waveform, LFO); // Clears and re-populates voice bank with new waveform
+        updateWaveForm(waveform); // Clears and re-populates voice bank with new waveform
+        updateLFOWaveform(LFOWaveForm);
         this.filterCutoff = filterCutoff;
         this.filterResonance = filterResonance;
         this.filterModAmount = filterModAmount;
@@ -116,14 +122,35 @@ public class Synthesiser{
         applyPatch();
     }
 
-    public void updateWaveForm(Waveform waveform, Waveform LFO){
+    public void updateLFOWaveform(Waveform LFOWaveForm){
+        // LFO Oscillator switch
+        switch (LFOWaveForm){
+            case SINE:
+                this.LFO = new SineOscillator(this.sampleRate);
+                break;
+            case SAW:
+                this.LFO = new SawOscillator(this.sampleRate);
+                break;
+            case TRIANGLE:
+                this.LFO = new TriangleOscillator(this.sampleRate);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported waveform: " + waveform);
+        }
+    }
+
+    public void setLFOFrequency(double LFOFrequency){
+        this.LFOFrequency = LFOFrequency;
+        LFO.setFrequency(LFOFrequency);
+    }
+
+    public void updateWaveForm(Waveform waveform){
         // Scrap all voices and repopulate the voice bank
-        if (this.waveform != waveform || this.LFO != LFO){
+        if (this.waveform != waveform){
             this.waveform = waveform;
-            this.LFO = LFO;
             voices.clear();
             for (int i = 0; i < this.noVoices; i++) {
-                voices.add(new Voice(this.waveform, 0, this.sampleRate, this.LFO, this.controlRate));
+                voices.add(new Voice(this.waveform, 0, this.sampleRate, this.controlRate, 0));
             }
         }
     }
@@ -134,9 +161,17 @@ public class Synthesiser{
             voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
             voice.setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModAmount);
             voice.setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
-            voice.setPannDepth(this.panDepth);
-            voice.setLFOFreq(this.LFOFrequency);
+            setLFOFrequency(this.LFOFrequency);
         }
+    }
+
+    public boolean anyVoicesActive(){
+        for (Voice voice:voices){
+            if (voice.isActive()){
+                return true;
+            }
+        }
+        return false;
     }
 
     public void noteOn(byte pitchMIDI, double velocity) {
@@ -152,12 +187,15 @@ public class Synthesiser{
                 voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
                 voice.setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModAmount);
                 voice.setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
-                voice.setPannDepth(this.panDepth);
-                voice.setLFOFreq(this.LFOFrequency);
+                voice.setPanPosition(getPanPosition());
                 voice.noteOn();
                 return;
             }
         }
+    }
+
+    public double getPanPosition(){
+        return (this.LFOPosition * this.panDepth);
     }
 
     public void noteOff(byte pitchMIDI){
@@ -170,6 +208,7 @@ public class Synthesiser{
     }
 
     public double[] processSample(){
+        this.LFOPosition = LFO.processSample(0.0);
         double sampleMixedL = 0.0;
         double sampleMixedR = 0.0;
 

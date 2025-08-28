@@ -1,14 +1,15 @@
 package synth.MIDI;
 
+
 import synth.core.Synthesiser;
+
 import java.io.File;
 import javax.sound.midi.*;
 
-public class MidiFilePLayer {
-
+public class MidiFilePlayer {
     private Synthesiser synth;
 
-    public MidiFilePLayer(Synthesiser synth){
+    public MidiFilePlayer(Synthesiser synth) {
         this.synth = synth;
     }
 
@@ -28,6 +29,8 @@ public class MidiFilePLayer {
             Receiver receiver = new MidiInputHandler(synth);
             transmitter.setReceiver(receiver);
 
+            System.out.println("Playing MIDI file: " + filePath);
+            sequencer.start();
             return sequencer;
 
         } catch (Exception e) {
