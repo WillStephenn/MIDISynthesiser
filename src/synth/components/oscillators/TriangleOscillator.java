@@ -7,7 +7,8 @@ public class TriangleOscillator extends Oscillator{
         this.phaseIncrement = 0;
     }
 
-    protected double calculateAmplitude(double input){
+    @Override
+    protected double calculateAmplitude(){
         if(phase < 0.5){
             // Ascending phase: Ramp amplitude from -1.0 to 1.0
             return (phase * 4.0) - 1.0;
@@ -18,6 +19,7 @@ public class TriangleOscillator extends Oscillator{
         }
     }
 
+    @Override
     protected void advancePhase(){
         this.phase += phaseIncrement;
         if (phase >= 1.0) { phase -= 1.0; }
