@@ -1,22 +1,45 @@
 package synth.MIDI;
 
 
+import java.io.File;
+import java.io.IOException;
+import javax.sound.midi.*;
 import synth.core.Synthesiser;
 
-import java.io.File;
-import javax.sound.midi.*;
-
+/**
+ * Handles playback of MIDI files, sending MIDI events to a synthesiser.
+ */
 public class MidiFilePlayer {
-    private Synthesiser synth;
+    private final Synthesiser synth;
 
+    /**
+     * Constructs a MidiFilePlayer.
+     * @param synth The synthesiser that will play the MIDI notes. Must not be null.
+     */
     public MidiFilePlayer(Synthesiser synth) {
+        if (synth == null) {
+            throw new IllegalArgumentException("Synthesiser cannot be null.");
+        }
         this.synth = synth;
     }
 
+    /**
+     * Plays a MIDI file from the given file path.
+     * @param filePath The path to the MIDI file. Must not be null or empty.
+     * @return The Sequencer instance used for playback, or null if an error occurs.
+     */
     public Sequencer playMidiFile(String filePath){
+        if (filePath == null || filePath.trim().isEmpty()) {
+            System.err.println("Error: MIDI file path is null or empty.");
+            return null;
+        }
         try{
             // Load Midi File
             File midiFile = new File(filePath);
+            if (!midiFile.exists()) {
+                System.err.println("Error: MIDI file not found at " + filePath);
+                return null;
+            }
             Sequence sequence = MidiSystem.getSequence(midiFile);
 
             // Create a sequencer and open it. False indicates no connected midi device.
@@ -33,7 +56,7 @@ public class MidiFilePlayer {
             sequencer.start();
             return sequencer;
 
-        } catch (Exception e) {
+        } catch (InvalidMidiDataException | IOException | MidiUnavailableException e) {
             System.err.println("Error playing MIDI file: " + e.getMessage());
             e.printStackTrace();
             return null;

@@ -1,10 +1,10 @@
 package synth;
 
+import javax.sound.midi.Sequencer;
+import javax.sound.sampled.*;
 import synth.MIDI.MidiFilePlayer;
 import synth.core.Synthesiser;
 import synth.utils.AudioConstants;
-import javax.sound.sampled.*;
-import javax.sound.midi.Sequencer;
 
 public class Main {
 

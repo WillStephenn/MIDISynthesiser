@@ -1,23 +1,43 @@
 package synth.components.filters;
 
+/**
+ * Implements a resonant low-pass filter using the Topology-Preserving Transform (TPT)
+ * State-Variable Filter (SVF) design by Vadim Zavalishin.
+ */
 public class ResonantLowPassFilter extends Filter{
-    // This implementation of a Resonant Low Pass filter uses Vadim Zavalishin's
-    // Topology Preserving Transform State Variable Filter (TPT SVF)
 
-    // The filters internal memory variables
+    // Filters internal memory variables
     private double integrator1;
     private double integrator2;
 
     // TPT Coefficients
     private double a1, a2, a3;
 
+    /**
+     * Constructs a ResonantLowPassFilter with a given sample rate.
+     * @param sampleRate The sample rate of the audio system.
+     */
     public ResonantLowPassFilter(double sampleRate){
         super(sampleRate);
         this.integrator1 = 0.0;
         this.integrator2 = 0.0;
+        // Initialise with default parameters
+        setParameters(1000, 1);
     }
 
+    /**
+     * Sets the cutoff frequency and resonance (Q) of the filter.
+     * @param cutoffFrequency The cutoff frequency in Hz. Must be positive and below the Nyquist frequency.
+     * @param resonanceQ The resonance factor (Q). Must be a positive value.
+     */
     public void setParameters(double cutoffFrequency, double resonanceQ){
+        if (cutoffFrequency <= 0 || cutoffFrequency >= sampleRate / 2) {
+            throw new IllegalArgumentException("Cutoff frequency must be positive and below the Nyquist frequency.");
+        }
+        if (resonanceQ <= 0) {
+            throw new IllegalArgumentException("Resonance (Q) must be positive.");
+        }
+
         double g = Math.tan(Math.PI * cutoffFrequency / this.sampleRate);
         double k = 1.0 / resonanceQ;
 
@@ -27,9 +47,14 @@ public class ResonantLowPassFilter extends Filter{
         this.a3 = g * a2;
     }
 
+    /**
+     * Processes one sample of audio through the filter.
+     * @param input The input sample.
+     * @return The filtered (low-pass) sample.
+     */
     @Override
     public double processSample(double input){
-        // --- The TPT State-Variable Filter Algorithm ---
+        // The TPT State-Variable Filter Algorithm
 
         // Calculate the intermediate values based on input and previous state
         double v3 = input - integrator2;
