@@ -1,12 +1,17 @@
 package synth;
 
+import javax.sound.midi.MidiDevice;
 import javax.sound.midi.Sequencer;
 import javax.sound.sampled.*;
+
+import synth.MIDI.MidiDeviceConnector;
 import synth.MIDI.MidiFilePlayer;
 import synth.core.Synthesiser;
 import synth.utils.AudioConstants;
 
 public class Main {
+    // NEXT STEP. BRIDGE MIDI CONTROL TO LOGIC. TIE AUTOMATION CHANNELS AND VELOCITY TO FX.
+    // Create a seperate UI class that pulls the synth params and note being played and renders it in ascii
 
     public static SourceDataLine getOutputLine(String name, AudioFormat format) throws LineUnavailableException {
         SourceDataLine line = null;
@@ -41,23 +46,33 @@ public class Main {
             Synthesiser synth = new Synthesiser(16);
 
             synth.loadPatch(
-                    Synthesiser.Waveform.SAW,
+                    Synthesiser.Waveform.TRIANGLE,
                     1000, 2, 2000,
                     0.01, 0.3, 0.5, 0.1,
-                    0.005, 0.1, 0.8, 0.3,
+                    0.005, 0.1, 0.4, 0.2,
                     -3.0, 0.0,
                     Synthesiser.Waveform.SINE, 0.2,
-                    1
+                    0.4
             );
 
             // --- MIDI FILE PLAYBACK ---
-            MidiFilePlayer midiPlayer = new MidiFilePlayer(synth);
-            Sequencer sequencer = midiPlayer.playMidiFile("midi/Silhuette.mid");
+            //MidiFilePlayer midiPlayer = new MidiFilePlayer(synth);
+            //Sequencer sequencer = midiPlayer.playMidiFile("midi/chords.mid");
+
+            MidiDeviceConnector.listMidiDevices();
+            String targetDeviceName = "Logic Pro Virtual Out";
+            MidiDevice midiDevice = MidiDeviceConnector.connectToDevice(synth, targetDeviceName);
+
+            if (midiDevice == null) {
+                System.out.println("Exiting due to MIDI connection failure.");
+                return;
+            }
 
             // --- AUDIO PROCESSING LOOP ---
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[64];
 
-            while ((sequencer != null && sequencer.isRunning()) || synth.anyVoicesActive()) {
+            //while ((sequencer != null && sequencer.isRunning()) || synth.anyVoicesActive()) {
+            while(true){
                 for (int i = 0; i < buffer.length; i += 4) {
                     double[] stereoSample = synth.processSample();
                     double leftSample = stereoSample[0];
@@ -74,13 +89,13 @@ public class Main {
                 line.write(buffer, 0, buffer.length);
             }
 
-            if (sequencer != null) {
-                sequencer.close();
-            }
+            //if (sequencer != null) {
+            //    sequencer.close();
+            //}
 
-            line.drain();
-            line.close();
-            System.out.println("Playback finished. Exiting.");
+            //line.drain();
+            //line.close();
+            //System.out.println("Playback finished. Exiting.");
 
         } catch (LineUnavailableException e) {
             System.err.println("Audio line is unavailable.");
