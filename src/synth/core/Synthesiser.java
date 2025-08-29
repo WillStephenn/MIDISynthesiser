@@ -61,7 +61,7 @@ public class Synthesiser{
      * Constructs a new Synthesiser with a specified number of voices.
      * @param noVoices The number of voices for the synthesiser. Must be a positive number.
      */
-    public Synthesiser(double noVoices) {
+    public Synthesiser(int noVoices) {
         if (noVoices <= 0) {
             throw new IllegalArgumentException("Number of voices must be positive.");
         }
@@ -78,23 +78,23 @@ public class Synthesiser{
 
         // Default Synth Patch
         loadPatch( // Applies default patch and populates the voice bank
-                Waveform.SAW, // Synth Waveform
-                500,     // filterCutoff
-                5,       // filterResonance
+                Waveform.SQUARE, // Synth Waveform
+                1000,     // filterCutoff
+                3,       // filterResonance
                 2000.0,  // filterModRange (Hz)
                 0.01,    // filterAttackTime
-                0.4,     // filterDecayTime
+                0.3,     // filterDecayTime
                 0.5,     // filterSustainLevel
-                0.4,     // filterReleaseTime
+                0.1,     // filterReleaseTime
                 0.005,   // ampAttackTime
-                0.3,     // ampDecayTime
-                0.5,     // ampSustainLevel
-                0.5,     // ampReleaseTime
-                -5.0,    // Pre Filter Gain (db)
+                0.1,     // ampDecayTime
+                0.4,     // ampSustainLevel
+                0.4,     // ampReleaseTime
+                -3.0,    // Pre Filter Gain (db)
                 0.0,     // Post Filter Gain (db)
-                Waveform.TRIANGLE, //LFO Waveform
-                0.5,     // LFO Frequency
-                1        // Pan Depth
+                Waveform.SINE, //LFO Waveform
+                1,     // LFO Frequency
+                0.4        // Pan Depth
         );
     }
 

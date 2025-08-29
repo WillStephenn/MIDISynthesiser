@@ -40,15 +40,12 @@ public class MidiDeviceConnector {
     /**
      * Prompts the user to select a MIDI input device.
      *
-     * Displays a numbered list of available devices and waits for the user to
-     * enter a valid selection. It will re-prompt if the input is invalid.
-     *
      * @return The name of the selected MIDI device, or null if none are found.
      */
     public static String promptUser() {
         ArrayList<String> devices = getMidiDevicesList();
         if (devices == null || devices.isEmpty()) {
-            System.out.println("Cannot prompt for selection, no MIDI devices available.");
+            System.out.println("No MIDI devices available.");
             return null;
         }
 
@@ -66,7 +63,7 @@ public class MidiDeviceConnector {
                 }
             } catch (InputMismatchException e) {
                 System.out.println("Invalid input. Please enter a number.");
-                scanner.next(); // Clear the invalid input from the scanner
+                scanner.next();
             }
         }
 
