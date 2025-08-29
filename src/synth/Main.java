@@ -24,7 +24,7 @@ public class Main {
         try (SourceDataLine line = AudioDeviceConnector.getOutputLine(audioOutputDevice, audioFormat)) {
 
             // --- INITIALISE AND VALIDATE THE SYNTH, AUDIO AND MIDI DEVICES
-            line.open(audioFormat, 2048 * 2);
+            line.open(audioFormat, AudioConstants.BUFFER_SIZE);
             line.start();
             Synthesiser synth = new Synthesiser(AudioConstants.NUMBER_OF_VOICES);
             MidiDevice midiDevice = MidiDeviceConnector.connectToDevice(synth, midiInputDevice);

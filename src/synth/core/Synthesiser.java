@@ -127,9 +127,11 @@ public class Synthesiser{
         // Scrap all voices and repopulate the voice bank
         if (this.waveform != waveform){
             this.waveform = waveform;
-            voices.clear();
-            for (int i = 0; i < this.noVoices; i++) {
-                voices.add(new Voice(this.waveform, 0, this.sampleRate, this.controlRate, 0));
+            synchronized (voices) {
+                voices.clear();
+                for (int i = 0; i < this.noVoices; i++) {
+                    voices.add(new Voice(this.waveform, 0, this.sampleRate, this.controlRate, 0));
+                }
             }
         }
     }
@@ -419,11 +421,13 @@ public class Synthesiser{
         double sampleMixedL = 0.0;
         double sampleMixedR = 0.0;
 
-        for(Voice voice:voices){
-            if(voice.isActive()){
-                double[] stereoSampleMixed = voice.processSampleStereo(0.0);
-                sampleMixedL += stereoSampleMixed[0] * this.mixStageAttenuation;
-                sampleMixedR += stereoSampleMixed[1] * this.mixStageAttenuation;
+        synchronized (voices) {
+            for (Voice voice : voices) {
+                if (voice.isActive()) {
+                    double[] stereoSampleMixed = voice.processSampleStereo(0.0);
+                    sampleMixedL += stereoSampleMixed[0] * this.mixStageAttenuation;
+                    sampleMixedR += stereoSampleMixed[1] * this.mixStageAttenuation;
+                }
             }
         }
 

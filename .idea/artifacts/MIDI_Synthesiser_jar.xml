@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="MIDI Synthesiser:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/MIDI_Synthesiser_jar</output-path>
+    <root id="archive" name="MIDI Synthesiser.jar">
+      <element id="module-output" name="MIDI Synthesiser" />
+    </root>
+  </artifact>
+</component>
