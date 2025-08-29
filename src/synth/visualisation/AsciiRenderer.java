@@ -2,6 +2,8 @@ package synth.visualisation;
 
 import synth.core.Synthesiser;
 
+import java.util.ArrayList;
+
 public class AsciiRenderer {
 
     /**
@@ -32,6 +34,23 @@ public class AsciiRenderer {
         // Clear the console before printing the new state
         clearConsole();
 
+        // Active Notes Rendering
+        ArrayList<Byte> activeNotes = synth.getActiveNotes();
+        StringBuilder pianoDisplay = new StringBuilder();
+        String[] noteNames = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+
+        for (int i = 0; i < 12; i++) {
+            boolean noteIsActive = false;
+            for (byte activeNote : activeNotes) {
+                if (activeNote % 12 == i) {
+                    noteIsActive = true;
+                    break;
+                }
+            }
+            // Use a brighter block character for active notes
+            pianoDisplay.append(noteIsActive ? "[#]" : "[ ]");
+        }
+
         // Using a Text Block for the UI template.
         // The .formatted() method replaces the specifiers with the provided values.
         String ui = """
@@ -57,6 +76,7 @@ public class AsciiRenderer {
             |                                              |
             | Pan Depth: %-34s|
             +----------------------------------------------+
+            |KEYBOARD: %-35s|
             """.formatted(
                 synth.getWaveform(),
                 synth.getAmpAttackTime(),
@@ -74,7 +94,8 @@ public class AsciiRenderer {
                 synth.getPostFilterGainDB(),
                 synth.getLFOWaveform(),
                 synth.getLFOFrequency(),
-                String.format("%.0f%%", synth.getPanDepth() * 100)
+                String.format("%.0f%%", synth.getPanDepth() * 100),
+                pianoDisplay.toString()
         );
 
         System.out.println(ui);

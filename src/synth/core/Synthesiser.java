@@ -294,6 +294,22 @@ public class Synthesiser{
     public double getPanDepth() { return panDepth; }
 
     /**
+     * Gets a list of the MIDI note numbers for all currently active voices.
+     * @return An ArrayList of Byte objects, each representing a MIDI pitch.
+     */
+    public ArrayList<Byte> getActiveNotes() {
+        ArrayList<Byte> activeNotes = new ArrayList<>();
+        synchronized (voices) {
+            for (Voice voice : voices) {
+                if (voice.isActiveNoRelease()) {
+                    activeNotes.add(voice.getPitchMIDI());
+                }
+            }
+        }
+        return activeNotes;
+    }
+
+    /**
      * Gets the current stereo pan position based on the LFO.
      * @return The pan position, ranging from -1.0 (left) to 1.0 (right).
      */

@@ -225,6 +225,16 @@ public class Voice implements AudioComponent{
     }
 
     /**
+     * Checks if the voice is in the attack/decay/sustain stage. Useful for rendering.
+     * @return true if the amplitude envelope is not in the IDLE OR RELEASE stage.
+     */
+    public boolean isActiveNoRelease() {
+        return (ampEnvelope.getStage() != Envelope.Stage.IDLE) & (ampEnvelope.getStage() != Envelope.Stage.RELEASE);
+    }
+
+
+
+    /**
      * Processes a single audio sample through the voice's signal chain.
      * @param input The input sample (typically 0.0 for an oscillator-driven voice).
      * @return The processed mono audio sample.
