@@ -157,12 +157,14 @@ public class Synthesiser{
      * @param LFOWaveForm The new waveform for the LFO.
      */
     public void updateLFOWaveform(Waveform LFOWaveForm){
-        // LFO Oscillator switch
-        switch (LFOWaveForm){
-            case SINE -> this.LFO = new SineOscillator(this.sampleRate);
-            case SAW -> this.LFO = new SawOscillator(this.sampleRate);
-            case TRIANGLE -> this.LFO = new TriangleOscillator(this.sampleRate);
-            default -> throw new IllegalArgumentException("Unsupported waveform: " + waveform);
+        if(this.LFOWaveForm != LFOWaveForm){
+            // LFO Oscillator switch
+            switch (LFOWaveForm){
+                case SINE -> this.LFO = new SineOscillator(this.sampleRate);
+                case SAW -> this.LFO = new SawOscillator(this.sampleRate);
+                case TRIANGLE -> this.LFO = new TriangleOscillator(this.sampleRate);
+                default -> throw new IllegalArgumentException("Unsupported waveform: " + waveform);
+            }
         }
     }
 
@@ -198,6 +200,8 @@ public class Synthesiser{
      * Applies the current patch settings to all voices.
      */
     public void applyPatch(){
+        updateWaveForm(this.waveform); // Clears and re-populates voice bank with new waveform
+        updateLFOWaveform(this.LFOWaveForm);
         for(Voice voice : voices){
             voice.setAmpEnvelope(this.ampAttackTime, this.ampDecayTime, this.ampSustainLevel, this.ampReleaseTime);
             voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
@@ -265,7 +269,6 @@ public class Synthesiser{
         for (Voice voice : voices){
             if(voice.isActive() && (voice.getPitchMIDI() == pitchMIDI)){
                 voice.noteOff();
-                return;
             }
         }
     }

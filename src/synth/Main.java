@@ -36,19 +36,19 @@ public class Main {
         );
 
         try (SourceDataLine line = getOutputLine(AudioConstants.AUDIO_OUTPUT_DEVICE, audioFormat)) {
-            line.open(audioFormat, 8192 * 2);
+            line.open(audioFormat, 2048 * 2);
             line.start();
 
-            Synthesiser synth = new Synthesiser(16);
+            Synthesiser synth = new Synthesiser(8);
 
             synth.loadPatch(
-                    Synthesiser.Waveform.TRIANGLE,
-                    1000, 2, 2000,
+                    Synthesiser.Waveform.SAW,
+                    1000, 3, 2000,
                     0.01, 0.3, 0.5, 0.1,
-                    0.005, 0.1, 0.4, 0.2,
+                    0.005, 0.1, 0.4, 0.4,
                     -3.0, 0.0,
                     Synthesiser.Waveform.SINE, 0.2,
-                    0.4
+                    1
             );
 
             MidiDeviceConnector.listMidiDevices();

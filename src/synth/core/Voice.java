@@ -233,16 +233,15 @@ public class Voice implements AudioComponent{
      */
     @Override
     public double processSample(double input) {
-            // Control Rate Logic, updates slow moving expensive elements every 'controlRate' samples
+        double filterEnvValue = filterEnvelope.processSample(1.0); // Grab filter multiplier from filter envelope
+
+        // Control Rate Logic, updates slow moving expensive elements every 'controlRate' samples
             if(controlRateCounter == 0) {
 
                 // Calculate filter modulation based on the filter env values
 
-                double filterEnvValue = filterEnvelope.processSample(1.0); // Grab filter multiplier from filter envelope
                 double finalCutoff = filterCutoff + (filterEnvValue * filterModRange); // Modulate cutoff based on the envelope multiplier
                 filter.setParameters(finalCutoff, this.filterResonance); // Update filter params
-
-
 
             }
             this.controlRateCounter = (this.controlRateCounter + 1) % (int)controlRate;
