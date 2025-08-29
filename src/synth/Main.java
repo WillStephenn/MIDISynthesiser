@@ -6,54 +6,28 @@ import javax.sound.sampled.*;
 import synth.MIDI.MidiDeviceConnector;
 import synth.core.Synthesiser;
 import synth.utils.AudioConstants;
+import synth.utils.AudioDeviceConnector;
 import synth.visualisation.AsciiRenderer;
 
 public class Main {
-    // MIDI input selector
-    // Audio Output selector
-
-    public static SourceDataLine getOutputLine(String name, AudioFormat format) throws LineUnavailableException {
-        SourceDataLine line = null;
-        for (Mixer.Info info : AudioSystem.getMixerInfo()) {
-            if (info.getName().equals(name)) {
-                Mixer mixer = AudioSystem.getMixer(info);
-                if (mixer.isLineSupported(new DataLine.Info(SourceDataLine.class, format))) {
-                    line = (SourceDataLine) mixer.getLine(new DataLine.Info(SourceDataLine.class, format));
-                    break;
-                }
-            }
-        }
-        if (line == null) {
-            System.err.println("Output device '" + name + "' not found. Using default device.");
-            line = AudioSystem.getSourceDataLine(format);
-        }
-        return line;
-    }
 
     public static void main(String[] args) {
+        // --- PROMPT USER INPUT TO SET MIDI AND AUDIO DEVICES ---
+        String midiInputDevice = MidiDeviceConnector.promptUser();
+        String audioOutputDevice = AudioDeviceConnector.promptUser();
+
         AudioFormat audioFormat = new AudioFormat(
                 (float) AudioConstants.SAMPLE_RATE,
                 16, 2, true, true
         );
 
-        try (SourceDataLine line = getOutputLine(AudioConstants.AUDIO_OUTPUT_DEVICE, audioFormat)) {
+        try (SourceDataLine line = AudioDeviceConnector.getOutputLine(audioOutputDevice, audioFormat)) {
+
+            // --- INITIALISE AND VALIDATE THE SYNTH, AUDIO AND MIDI DEVICES
             line.open(audioFormat, 2048 * 2);
             line.start();
-
-            Synthesiser synth = new Synthesiser(12);
-
-            synth.loadPatch(
-                    Synthesiser.Waveform.SQUARE,
-                    1000, 3, 2000,
-                    0.01, 0.3, 0.5, 0.1,
-                    0.005, 0.1, 0.4, 0.4,
-                    -3.0, 0.0,
-                    Synthesiser.Waveform.SINE, 1,
-                    0.4
-            );
-
-            String midiInputSource = MidiDeviceConnector.promptUser();
-            MidiDevice midiDevice = MidiDeviceConnector.connectToDevice(synth, midiInputSource);
+            Synthesiser synth = new Synthesiser(AudioConstants.NUMBER_OF_VOICES);
+            MidiDevice midiDevice = MidiDeviceConnector.connectToDevice(synth, midiInputDevice);
 
             if (midiDevice == null) {
                 System.out.println("Exiting due to MIDI connection failure.");
