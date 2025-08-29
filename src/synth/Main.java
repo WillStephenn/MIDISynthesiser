@@ -6,6 +6,7 @@ import javax.sound.sampled.*;
 import synth.MIDI.MidiDeviceConnector;
 import synth.core.Synthesiser;
 import synth.utils.AudioConstants;
+import synth.visualisation.AsciiRenderer;
 
 public class Main {
     // NEXT STEP. BRIDGE MIDI CONTROL TO LOGIC. TIE AUTOMATION CHANNELS AND VELOCITY TO FX.
@@ -61,8 +62,14 @@ public class Main {
 
             // --- AUDIO PROCESSING LOOP ---
             byte[] buffer = new byte[64];
+            double renderCounter = 0;
 
             while(true){
+                if (renderCounter == 0){
+                    AsciiRenderer.render(synth);
+                }
+                renderCounter = (renderCounter + 1)% AudioConstants.RENDER_RATE;
+
                 for (int i = 0; i < buffer.length; i += 4) {
                     double[] stereoSample = synth.processSample();
                     double leftSample = stereoSample[0];

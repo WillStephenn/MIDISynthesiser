@@ -3,6 +3,8 @@ package synth.utils;
 public interface AudioConstants {
     double SAMPLE_RATE = 44100.0;
     double CONTROL_RATE = 64;
+    double RENDER_RATE = SAMPLE_RATE / (64);
     String AUDIO_OUTPUT_DEVICE = "BlackHole 2ch";
     String MIDI_INPUT_SOURCE = "Logic Pro Virtual Out";
+
 }

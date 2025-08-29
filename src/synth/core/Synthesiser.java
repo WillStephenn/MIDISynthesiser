@@ -158,6 +158,7 @@ public class Synthesiser{
      */
     public void updateLFOWaveform(Waveform LFOWaveForm){
         if(this.LFOWaveForm != LFOWaveForm){
+            this.LFOWaveForm = LFOWaveForm;
             // LFO Oscillator switch
             switch (LFOWaveForm){
                 case SINE -> this.LFO = new SineOscillator(this.sampleRate);
@@ -272,6 +273,25 @@ public class Synthesiser{
             }
         }
     }
+
+    // Getters for render engine:
+    public Waveform getWaveform() { return waveform; }
+    public double getAmpAttackTime() { return ampAttackTime; }
+    public double getAmpDecayTime() { return ampDecayTime; }
+    public double getAmpSustainLevel() { return ampSustainLevel; }
+    public double getAmpReleaseTime() { return ampReleaseTime; }
+    public double getFilterCutoff() { return filterCutoff; }
+    public double getFilterResonance() { return filterResonance; }
+    public double getFilterModRange() { return filterModRange; }
+    public double getFilterAttackTime() { return filterAttackTime; }
+    public double getFilterDecayTime() { return filterDecayTime; }
+    public double getFilterSustainLevel() { return filterSustainLevel; }
+    public double getFilterReleaseTime() { return filterReleaseTime; }
+    public double getPreFilterGainDB() { return preFilterGainDB; }
+    public double getPostFilterGainDB() { return postFilterGainDB; }
+    public Waveform getLFOWaveform() { return LFOWaveForm; }
+    public double getLFOFrequency() { return LFOFrequency; }
+    public double getPanDepth() { return panDepth; }
 
     /**
      * Processes one block of audio samples for all active voices.
