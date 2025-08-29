@@ -1,11 +1,9 @@
 package synth;
 
 import javax.sound.midi.MidiDevice;
-import javax.sound.midi.Sequencer;
 import javax.sound.sampled.*;
 
 import synth.MIDI.MidiDeviceConnector;
-import synth.MIDI.MidiFilePlayer;
 import synth.core.Synthesiser;
 import synth.utils.AudioConstants;
 
@@ -37,9 +35,7 @@ public class Main {
                 16, 2, true, true
         );
 
-        String outputDeviceName = "BlackHole 2ch";
-
-        try (SourceDataLine line = getOutputLine(outputDeviceName, audioFormat)) {
+        try (SourceDataLine line = getOutputLine(AudioConstants.AUDIO_OUTPUT_DEVICE, audioFormat)) {
             line.open(audioFormat, 8192 * 2);
             line.start();
 
@@ -55,13 +51,8 @@ public class Main {
                     0.4
             );
 
-            // --- MIDI FILE PLAYBACK ---
-            //MidiFilePlayer midiPlayer = new MidiFilePlayer(synth);
-            //Sequencer sequencer = midiPlayer.playMidiFile("midi/chords.mid");
-
             MidiDeviceConnector.listMidiDevices();
-            String targetDeviceName = "Logic Pro Virtual Out";
-            MidiDevice midiDevice = MidiDeviceConnector.connectToDevice(synth, targetDeviceName);
+            MidiDevice midiDevice = MidiDeviceConnector.connectToDevice(synth, AudioConstants.MIDI_INPUT_SOURCE);
 
             if (midiDevice == null) {
                 System.out.println("Exiting due to MIDI connection failure.");
@@ -71,7 +62,6 @@ public class Main {
             // --- AUDIO PROCESSING LOOP ---
             byte[] buffer = new byte[64];
 
-            //while ((sequencer != null && sequencer.isRunning()) || synth.anyVoicesActive()) {
             while(true){
                 for (int i = 0; i < buffer.length; i += 4) {
                     double[] stereoSample = synth.processSample();
@@ -88,14 +78,6 @@ public class Main {
                 }
                 line.write(buffer, 0, buffer.length);
             }
-
-            //if (sequencer != null) {
-            //    sequencer.close();
-            //}
-
-            //line.drain();
-            //line.close();
-            //System.out.println("Playback finished. Exiting.");
 
         } catch (LineUnavailableException e) {
             System.err.println("Audio line is unavailable.");
