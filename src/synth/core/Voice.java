@@ -2,10 +2,7 @@ package synth.core;
 
 import synth.components.Envelope;
 import synth.components.filters.ResonantLowPassFilter;
-import synth.components.oscillators.Oscillator;
-import synth.components.oscillators.SawOscillator;
-import synth.components.oscillators.SineOscillator;
-import synth.components.oscillators.TriangleOscillator;
+import synth.components.oscillators.*;
 
 /**
  * Represents a single voice in the synthesiser, encapsulating all audio components
@@ -79,6 +76,7 @@ public class Voice implements AudioComponent{
             case SINE -> this.oscillator = new SineOscillator(sampleRate);
             case SAW -> this.oscillator = new SawOscillator(sampleRate);
             case TRIANGLE -> this.oscillator = new TriangleOscillator(sampleRate);
+            case SQUARE -> this.oscillator = new SquareOscillator(sampleRate);
             default -> throw new IllegalArgumentException("Unsupported waveform: " + waveform);
         }
 

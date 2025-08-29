@@ -9,8 +9,8 @@ import synth.utils.AudioConstants;
 import synth.visualisation.AsciiRenderer;
 
 public class Main {
-    // NEXT STEP. BRIDGE MIDI CONTROL TO LOGIC. TIE AUTOMATION CHANNELS AND VELOCITY TO FX.
-    // Create a seperate UI class that pulls the synth params and note being played and renders it in ascii
+    // MIDI input selector
+    // Audio Output selector
 
     public static SourceDataLine getOutputLine(String name, AudioFormat format) throws LineUnavailableException {
         SourceDataLine line = null;
@@ -40,20 +40,20 @@ public class Main {
             line.open(audioFormat, 2048 * 2);
             line.start();
 
-            Synthesiser synth = new Synthesiser(8);
+            Synthesiser synth = new Synthesiser(12);
 
             synth.loadPatch(
-                    Synthesiser.Waveform.SAW,
+                    Synthesiser.Waveform.SQUARE,
                     1000, 3, 2000,
                     0.01, 0.3, 0.5, 0.1,
                     0.005, 0.1, 0.4, 0.4,
                     -3.0, 0.0,
-                    Synthesiser.Waveform.SINE, 0.2,
-                    1
+                    Synthesiser.Waveform.SINE, 1,
+                    0.4
             );
 
-            MidiDeviceConnector.listMidiDevices();
-            MidiDevice midiDevice = MidiDeviceConnector.connectToDevice(synth, AudioConstants.MIDI_INPUT_SOURCE);
+            String midiInputSource = MidiDeviceConnector.promptUser();
+            MidiDevice midiDevice = MidiDeviceConnector.connectToDevice(synth, midiInputSource);
 
             if (midiDevice == null) {
                 System.out.println("Exiting due to MIDI connection failure.");

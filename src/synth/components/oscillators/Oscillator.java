@@ -29,7 +29,6 @@ public abstract class Oscillator implements AudioComponent {
     // Methods
     /**
      * Calculates the current amplitude of the waveform based on the current phase.
-     * @param input The input to the oscillator, typically not used for basic oscillators.
      * @return The calculated amplitude.
      */
     protected abstract double calculateAmplitude();
@@ -37,8 +36,10 @@ public abstract class Oscillator implements AudioComponent {
     /**
      * Advances the phase of the oscillator for the next sample.
      */
-    protected abstract void advancePhase();
-
+    protected void advancePhase(){
+        this.phase += phaseIncrement;
+        if (phase >= 1.0) { phase -= 1.0; }
+    }
     /**
      * Sets the frequency of the oscillator.
      * @param frequency The frequency in Hz. Must not be negative.

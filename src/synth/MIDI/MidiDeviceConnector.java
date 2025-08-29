@@ -3,7 +3,7 @@ package synth.MIDI;
 import synth.core.Synthesiser;
 import javax.sound.midi.*;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Scanner;
 
 public class MidiDeviceConnector {
 
@@ -11,25 +11,37 @@ public class MidiDeviceConnector {
      * Lists all available MIDI input devices to the console.
      * An input device is one that can send MIDI messages (has at least one transmitter).
      */
-    public static void listMidiDevices() {
-        System.out.println("--- Available MIDI Input Devices ---");
+    public static ArrayList<String> getMidiDevicesList() {
+        ArrayList<String> Devices = new ArrayList<>();
+        System.out.println("--- Select MIDI Input Device ---");
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
         if (infos.length == 0) {
             System.out.println("No MIDI devices found.");
-            return;
+            return null;
         }
-        for (int i = 0; i < infos.length; i++) {
+        int i = 1;
+        for (MidiDevice.Info info : infos) {
             try {
-                MidiDevice device = MidiSystem.getMidiDevice(infos[i]);
-                // A device with transmitters is a MIDI input device (e.g., a keyboard, Logic Pro)
+                MidiDevice device = MidiSystem.getMidiDevice(info);
                 if (device.getMaxTransmitters() != 0) {
-                    System.out.println("- " + infos[i].getName());
+                    Devices.add(info.getName());
+                    System.out.println(i + "- " + info.getName());
+                    i ++;
                 }
             } catch (MidiUnavailableException e) {
-                // Ignore devices that can't be accessed
             }
         }
         System.out.println("------------------------------------");
+        return Devices;
+    }
+
+    public static String promptUser(){
+        ArrayList<String> Devices = getMidiDevicesList();
+        assert Devices != null;
+        Scanner scanner = new Scanner(System.in);
+        int input = scanner.nextInt();
+        System.out.println("Selecting " + Devices.get(input - 1));
+        return Devices.get(input - 1);
     }
 
     /**

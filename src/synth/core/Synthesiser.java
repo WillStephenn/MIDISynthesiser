@@ -22,7 +22,7 @@ public class Synthesiser{
     // Master Configs (synth-wide settings)
     // Oscillator
     public enum Waveform {
-        SINE, SAW, TRIANGLE
+        SINE, SAW, TRIANGLE, SQUARE
     }
     private Waveform waveform;
 
@@ -112,6 +112,7 @@ public class Synthesiser{
                 case SINE -> this.LFO = new SineOscillator(this.sampleRate);
                 case SAW -> this.LFO = new SawOscillator(this.sampleRate);
                 case TRIANGLE -> this.LFO = new TriangleOscillator(this.sampleRate);
+                case SQUARE -> this.LFO = new TriangleOscillator(this.sampleRate);
                 default -> throw new IllegalArgumentException("Unsupported waveform: " + waveform);
             }
         }
@@ -252,7 +253,6 @@ public class Synthesiser{
     public void setLFOWaveform(Waveform LFOWaveForm) {
         if (this.LFOWaveForm != LFOWaveForm) {
             updateWaveForm(LFOWaveForm);
-            applyPatch();
         }
     }
 

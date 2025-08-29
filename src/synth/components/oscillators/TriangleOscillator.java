@@ -18,10 +18,4 @@ public class TriangleOscillator extends Oscillator{
             return ((1.0 - phase) * 4.0) - 1.0;
         }
     }
-
-    @Override
-    protected void advancePhase(){
-        this.phase += phaseIncrement;
-        if (phase >= 1.0) { phase -= 1.0; }
-    }
 }
