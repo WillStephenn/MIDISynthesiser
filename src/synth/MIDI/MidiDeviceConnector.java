@@ -4,6 +4,8 @@ import synth.core.Synthesiser;
 import javax.sound.midi.*;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.InputMismatchException;
+
 
 public class MidiDeviceConnector {
 
@@ -35,17 +37,47 @@ public class MidiDeviceConnector {
         return Devices;
     }
 
-    public static String promptUser(){
-        ArrayList<String> Devices = getMidiDevicesList();
-        assert Devices != null;
+    /**
+     * Prompts the user to select a MIDI input device.
+     *
+     * Displays a numbered list of available devices and waits for the user to
+     * enter a valid selection. It will re-prompt if the input is invalid.
+     *
+     * @return The name of the selected MIDI device, or null if none are found.
+     */
+    public static String promptUser() {
+        ArrayList<String> devices = getMidiDevicesList();
+        if (devices == null || devices.isEmpty()) {
+            System.out.println("Cannot prompt for selection, no MIDI devices available.");
+            return null;
+        }
+
         Scanner scanner = new Scanner(System.in);
-        int input = scanner.nextInt();
-        System.out.println("Selecting " + Devices.get(input - 1));
-        return Devices.get(input - 1);
+        int input = -1;
+
+        while (true) {
+            System.out.print("Enter the number of the device you want to use: ");
+            try {
+                input = scanner.nextInt();
+                if (input >= 1 && input <= devices.size()) {
+                    break; // Exit loop if input is valid
+                } else {
+                    System.out.println("Invalid number. Please enter a number between 1 and " + devices.size() + ".");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Invalid input. Please enter a number.");
+                scanner.next(); // Clear the invalid input from the scanner
+            }
+        }
+
+        String selectedDevice = devices.get(input - 1);
+        System.out.println("Selecting " + selectedDevice);
+        return selectedDevice;
     }
 
+
     /**
-     * Connects the synthesizer to the first MIDI input device found with the specified name.
+     * Connects the synthesiser to the first MIDI input device found with the specified name.
      * @param synth The Synthesiser instance to connect.
      * @param deviceName The name of the MIDI device to connect to (e.g., "IAC Driver Bus 1").
      * @return The MidiDevice object if connection is successful, otherwise null.
