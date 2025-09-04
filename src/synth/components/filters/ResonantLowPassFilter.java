@@ -59,12 +59,32 @@ public class ResonantLowPassFilter extends Filter{
      * @param input The input sample.
      * @return The filtered (low-pass) sample.
      */
-    @Override
-    public double processSample(double input){
+    public double processSingleSample(double input) {
         // The TPT State-Variable Filter Algorithm
+        double v3 = input - integrator2;
+        double v1 = a1 * integrator1 + a2 * v3;
+        double v2 = integrator2 + a2 * integrator1 + a3 * v3;
+
+        integrator1 = 2 * v1 - integrator1;
+        integrator2 = 2 * v2 - integrator2;
+
+        return v2;
+    }
+
+    /**
+     * Processes a block of audio, applying the envelope to each sample.
+     * @param inputBuffer The buffer containing the audio signal to be modulated.
+     * @param outputBuffer The buffer where the modulated audio will be written.
+     * @param blockSize The number of samples to process.
+     */
+    @Override
+    public void processBlock(double[] inputBuffer, double[] outputBuffer, int blockSize) {
+
+        // The TPT State-Variable Filter Algorithm
+        for (int i = 0; i < blockSize; i++){
 
         // Calculate the intermediate values based on input and previous state
-        double v3 = input - integrator2;
+        double v3 = inputBuffer[i] - integrator2;
         double v1 = a1 * integrator1 + a2 * v3;
         double v2 = integrator2 + a2 * integrator1 + a3 * v3;
 
@@ -73,8 +93,7 @@ public class ResonantLowPassFilter extends Filter{
         integrator2 = 2 * v2 - integrator2;
 
         // The low-pass output is the final v2 value
-        return v2;
+        outputBuffer[i] = v2;
+        }
     }
-
-
 }

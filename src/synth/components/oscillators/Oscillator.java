@@ -58,15 +58,18 @@ public abstract class Oscillator implements AudioComponent {
     }
 
     /**
-     * Processes one sample of audio.
-     * It calculates the current amplitude and advances the oscillator's phase.
-     * @param input The input sample, ignored by oscillators. Here for interface consistency.
-     * @return The generated sample.
+     * Fills the output buffer with a block of generated samples.
+     * The input buffer is ignored as oscillators are sound generators.
+     *
+     * @param inputBuffer The input buffer (ignored in this case).
+     * @param outputBuffer The buffer to fill with the oscillator's waveform.
+     * @param blockSize The number of samples to generate.
      */
     @Override
-    public double processSample(double input){
-        double currentAmplitude = calculateAmplitude();
-        advancePhase();
-        return currentAmplitude;
+    public void processBlock(double[] inputBuffer, double[] outputBuffer, int blockSize){
+        for (int i = 0; i < blockSize; i++){
+            outputBuffer[i] = calculateAmplitude();
+            advancePhase();
+        }
     }
 }

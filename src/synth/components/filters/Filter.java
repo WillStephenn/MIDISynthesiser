@@ -21,10 +21,11 @@ public abstract class Filter implements AudioComponent {
     }
 
     /**
-     * Processes one sample of audio through the filter.
-     * @param input The input sample.
-     * @return The filtered sample.
+     * Processes a block of audio, applying the envelope to each sample.
+     * @param inputBuffer The buffer containing the audio signal to be modulated.
+     * @param outputBuffer The buffer where the modulated audio will be written.
+     * @param blockSize The number of samples to process.
      */
     @Override
-    public abstract double processSample(double input);
+    public abstract void processBlock(double[] inputBuffer, double[] outputBuffer, int blockSize);
 }

@@ -26,7 +26,12 @@ public class Main {
             // --- INITIALISE AND VALIDATE THE SYNTH, AUDIO AND MIDI DEVICES
             line.open(audioFormat, AudioConstants.BUFFER_SIZE);
             line.start();
-            Synthesiser synth = new Synthesiser(AudioConstants.NUMBER_OF_VOICES);
+            Synthesiser synth = new Synthesiser(
+                    AudioConstants.NUMBER_OF_VOICES,
+                    AudioConstants.SAMPLE_RATE,
+                    AudioConstants.CONTROL_RATE,
+                    AudioConstants.BLOCK_SIZE); // Point of dependency injection for entire synth stack.
+
             MidiDevice midiDevice = MidiDeviceConnector.connectToDevice(synth, midiInputDevice);
 
             if (midiDevice == null) {
@@ -35,7 +40,8 @@ public class Main {
             }
 
             // --- AUDIO PROCESSING LOOP ---
-            byte[] buffer = new byte[64];
+            double[] audioBlock = new double[AudioConstants.BLOCK_SIZE *2];
+            byte[] buffer = new byte[AudioConstants.BLOCK_SIZE * 4];
             double renderCounter = 0;
 
             while(true){
@@ -44,22 +50,24 @@ public class Main {
                 }
                 renderCounter = (renderCounter + 1)% AudioConstants.RENDER_RATE;
 
-                for (int i = 0; i < buffer.length; i += 4) {
-                    double[] stereoSample = synth.processSample();
-                    double leftSample = stereoSample[0];
-                    double rightSample = stereoSample[1];
+                synth.processBlock(audioBlock);
+
+                // --- CONVERT BLOCK TO BYTES ---
+                for (int i = 0; i < AudioConstants.BUFFER_SIZE; i++) {
+                    double leftSample = audioBlock[i * 2];
+                    double rightSample = audioBlock[i * 2 + 1];
 
                     short pcmLeft = (short) (leftSample * Short.MAX_VALUE);
-                    buffer[i] = (byte) (pcmLeft >> 8);
-                    buffer[i + 1] = (byte) (pcmLeft & 0xFF);
+                    int baseIndex = i * 4;
+                    buffer[baseIndex] = (byte) (pcmLeft >> 8);
+                    buffer[baseIndex + 1] = (byte) (pcmLeft & 0xFF);
 
                     short pcmRight = (short) (rightSample * Short.MAX_VALUE);
-                    buffer[i + 2] = (byte) (pcmRight >> 8);
-                    buffer[i + 3] = (byte) (pcmRight & 0xFF);
+                    buffer[baseIndex + 2] = (byte) (pcmRight >> 8);
+                    buffer[baseIndex + 3] = (byte) (pcmRight & 0xFF);
                 }
                 line.write(buffer, 0, buffer.length);
             }
-
         } catch (LineUnavailableException e) {
             System.err.println("Audio line is unavailable.");
             e.printStackTrace();

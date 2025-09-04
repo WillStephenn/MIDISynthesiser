@@ -154,40 +154,44 @@ public class Envelope implements AudioComponent {
     }
 
     /**
-     * Processes one sample of audio, applying the envelope.
-     * @param input The input sample.
-     * @return The processed sample with the envelope applied.
+     * Processes a block of audio, applying the envelope to each sample.
+     * @param inputBuffer The buffer containing the audio signal to be modulated.
+     * @param outputBuffer The buffer where the modulated audio will be written.
+     * @param blockSize The number of samples to process.
      */
     @Override
-    public double processSample(double input) {
-        switch (currentStage){
-            case IDLE:
-                return 0.0;
-            case ATTACK:
-                currentMultiplier += attackIncrement;
-                if (currentMultiplier >= 1.0){
-                    currentMultiplier = 1.0;
-                    setStage(Stage.DECAY);
-                }
-                break;
-            case DECAY:
-                currentMultiplier -= decayIncrement;
-                if (currentMultiplier <= sustainLevel){
-                    currentMultiplier = sustainLevel;
-                    setStage(Stage.SUSTAIN);
-                }
-                break;
-            case SUSTAIN:
-                currentMultiplier = sustainLevel;
-                break;
-            case RELEASE:
-                currentMultiplier -= releaseIncrement;
-                if (currentMultiplier <= 0.0){
+    public void processBlock(double[] inputBuffer, double[] outputBuffer, int blockSize) {
+        for (int i = 0; i < blockSize; i++) {
+            switch (currentStage) {
+                case IDLE:
                     currentMultiplier = 0.0;
-                    setStage(Stage.IDLE);
-                }
-                break;
+                    break;
+                case ATTACK:
+                    currentMultiplier += attackIncrement;
+                    if (currentMultiplier >= 1.0) {
+                        currentMultiplier = 1.0;
+                        setStage(Stage.DECAY);
+                    }
+                    break;
+                case DECAY:
+                    currentMultiplier -= decayIncrement;
+                    if (currentMultiplier <= sustainLevel) {
+                        currentMultiplier = sustainLevel;
+                        setStage(Stage.SUSTAIN);
+                    }
+                    break;
+                case SUSTAIN:
+                    currentMultiplier = sustainLevel;
+                    break;
+                case RELEASE:
+                    currentMultiplier -= releaseIncrement;
+                    if (currentMultiplier <= 0.0) {
+                        currentMultiplier = 0.0;
+                        setStage(Stage.IDLE);
+                    }
+                    break;
+            }
+            outputBuffer[i] = inputBuffer[i] * currentMultiplier;
         }
-        return input * currentMultiplier;
     }
 }

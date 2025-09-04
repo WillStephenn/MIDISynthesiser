@@ -7,6 +7,7 @@ import synth.components.oscillators.TriangleOscillator;
 import synth.utils.AudioConstants;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * The main synthesiser class that manages and processes multiple voices.
@@ -14,7 +15,7 @@ import java.util.ArrayList;
  */
 public class Synthesiser{
     // Control all the voices. Bundles them up in an arraylist ready to be shipped to the buffer.
-    private ArrayList<Voice> voices;
+    private final ArrayList<Voice> voices;
     private final double noVoices;
     private final double sampleRate;
     private final double controlRate;
@@ -57,27 +58,34 @@ public class Synthesiser{
     // Panning
     private double panDepth;
 
-    // Output Var
-    private double[] stereoOutput = new double[2];
+    // Output Buffers
+    int blockSize;
+    private final double[] voiceOutputBuffer;
+    private final double[] lfoOutputBuffer;
 
     /**
      * Constructs a new Synthesiser with a specified number of voices.
      * @param noVoices The number of voices for the synthesiser. Must be a positive number.
      */
-    public Synthesiser(int noVoices) {
+    public Synthesiser(int noVoices, double sampleRate, int controlRate, int blockSize) {
         if (noVoices <= 0) {
             throw new IllegalArgumentException("Number of voices must be positive.");
         }
         this.noVoices = noVoices;
         this.mixStageAttenuation = 1.0 / Math.sqrt(this.noVoices);
-        this.sampleRate = AudioConstants.SAMPLE_RATE; // Point of dependency injection for entire voice stack
-        this.controlRate = AudioConstants.CONTROL_RATE;
+        this.sampleRate = sampleRate;
+        this.controlRate = controlRate;
         this.voices = new ArrayList<Voice>();
 
         // Initialise the filter parameters to 1 so voice.setFilterParameters doesn't throw an error on construction.
         this.filterCutoff = 1;
         this.filterResonance = 1;
         this.filterModRange = 1;
+
+        // Construct Buffers
+        this.blockSize = blockSize;
+        this.voiceOutputBuffer = new double[this.blockSize * 2];
+        this.lfoOutputBuffer = new double[this.blockSize];
 
         // Default Synth Patch
         loadPatch( // Applies default patch and populates the voice bank
@@ -433,31 +441,34 @@ public class Synthesiser{
 
     /**
      * Processes one block of audio samples for all active voices.
-     * @return A stereo audio frame (left and right channels).
      */
-    public double[] processSample(){
-        this.LFOPosition = LFO.processSample(0.0);
-        double sampleMixedL = 0.0;
-        double sampleMixedR = 0.0;
+    public void processBlock(double[] stereoOutputBuffer){
+        // Clear the output buffer
+        Arrays.fill(stereoOutputBuffer, 0.0);
+
+        // Populate LFO buffer
+        LFO.processBlock(null, this.lfoOutputBuffer, blockSize);
 
         synchronized (voices) {
             for (Voice voice : voices) {
                 if (voice.isActive()) {
-                    double[] stereoSampleMixed = voice.processSampleStereo(0.0);
-                    sampleMixedL += stereoSampleMixed[0] * this.mixStageAttenuation;
-                    sampleMixedR += stereoSampleMixed[1] * this.mixStageAttenuation;
+                    // If the voice is active, process it's block and sum it into the output buffer.
+                    voice.processBlock(this.voiceOutputBuffer, this.lfoOutputBuffer, this.blockSize);
+                    for(int i = 0; i < this.blockSize * 2; i++){
+                       stereoOutputBuffer[i] += this.voiceOutputBuffer[i] * this.mixStageAttenuation;
+                    }
                 }
             }
         }
 
         // Hard Clipping
-        sampleMixedL = Math.max(-1.0, Math.min(1.0, sampleMixedL));
-        sampleMixedR = Math.max(-1.0, Math.min(1.0, sampleMixedR));
-
-        stereoOutput[0] = sampleMixedL;
-        stereoOutput[1] = sampleMixedR;
-
-        return stereoOutput;
+        for (int i = 0; i < blockSize * 2; i++) {
+            if (stereoOutputBuffer[i] > 1.0) {
+                stereoOutputBuffer[i] = 1.0;
+            } else if (stereoOutputBuffer[i] < -1.0) {
+                stereoOutputBuffer[i] = -1.0;
+            }
+        }
     }
 
 }

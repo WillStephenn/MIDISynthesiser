@@ -25,8 +25,8 @@ public class Voice implements AudioComponent{
     private double filterCutoff;
     private double filterResonance;
     private double filterModRange;
-    private final double controlRate;
-    private double controlRateCounter;
+    private final int controlRate;
+    private int controlRateCounter;
 
     // Gain Staging
     private double velocityMult;
@@ -41,9 +41,12 @@ public class Voice implements AudioComponent{
     private double leftGain;
     private double rightGain;
 
-    // Output Var
-    private double[] stereoOutput = new double[2];
-
+    // Output Buffers
+    private final double[] oscillatorOutputBuffer;
+    private final double[] filterOutputBuffer;
+    private final double[] filterEnvelopeOutput;
+    private final double[] ampEnvelopeOutputBuffer;
+    private final double[] stereoOutputBuffer;
 
     /**
      * Constructs a new Voice with the specified waveform, pitch, sample rate, control rate, and pan position.
@@ -53,7 +56,7 @@ public class Voice implements AudioComponent{
      * @param controlRate The rate at which control signals are updated. Must be positive.
      * @param panPosition The initial stereo pan position (-1.0 to 1.0).
      */
-    public Voice (Synthesiser.Waveform waveform, double pitchFrequency, double sampleRate, double controlRate, double panPosition){
+    public Voice (Synthesiser.Waveform waveform, double pitchFrequency, double sampleRate, double controlRate, double panPosition, int blockSize){
         if (pitchFrequency < 0) {
             throw new IllegalArgumentException("Initial pitch frequency cannot be negative.");
         }
@@ -90,6 +93,13 @@ public class Voice implements AudioComponent{
 
         // Set Default Velocity
         this.velocityMult = 1.0;
+
+        // Output Buffers
+        this.oscillatorOutputBuffer = new double[blockSize];
+        this.filterOutputBuffer = new double[blockSize];
+        this.filterEnvelopeOutputBuffer  = new double[blockSize];
+        this.ampEnvelopeOutputBuffer  = new double[blockSize];
+        this.stereoOutputBuffer = new double[blockSize * 2];
     }
 
     // Facade Setter Methods
@@ -236,8 +246,6 @@ public class Voice implements AudioComponent{
         return (ampEnvelope.getStage() != Envelope.Stage.IDLE) & (ampEnvelope.getStage() != Envelope.Stage.RELEASE);
     }
 
-
-
     /**
      * Processes a single audio sample through the voice's signal chain.
      * @param input The input sample (typically 0.0 for an oscillator-driven voice).
@@ -272,16 +280,49 @@ public class Voice implements AudioComponent{
     }
 
     /**
-     * Processes a single audio sample and returns a stereo frame.
-     * @param input The input sample.
-     * @return A two-element array containing the left and right channel samples.
+     * Processes a block of audio, applying the envelope to each sample.
+     * @param inputBuffer not used. Here for interface consistency.
+     * @param outputBuffer The buffer where the modulated audio will be written.
+     * @param blockSize The number of samples to process.
      */
-    public double[] processSampleStereo(double input){
+    @Override
+    public void processBlock(double[] inputBuffer, double[] outputBuffer, int blockSize) {
+        // Populate base audio component buffers
+        oscillator.processBlock(null, this.oscillatorOutputBuffer, blockSize);
+        filterEnvelope.processBlock(null, this,filterEnvelopeOutputBuffer, blockSize);
+
+        // Process filter block. This uses single sample processing, because the voice is handling the filter modulation.
+        double filterEnvValue = null;
+        double finalCutoff = null;
+
+        for (int i = 0; i < blockSize; i ++){
+            // Control Rate Logic. Only updates filter paramaters every controlRate samples as an optimisation function.
+            // increasing the control rate in AudioConstants reduces the rate of paramater updating, but reduces audio fidelity.
+            if (controlRateCounter == 0){
+                // Calculate filter cutoff modulation
+                double filterEnvValue = this.filterEnvelopeOutputBuffer[i];
+                double finalCutoff = filterCutoff + (filterEnvValue * filterModRange);
+
+                // Clamp output
+                finalCutoff = Math.max(20.0, Math.min(20000.0, finalCutoff));
+
+                filter.setParameters(finalCutoff, this.filterResonance);
+            }
+            controlRateCounter = (controlRateCounter + 1) % controlRate;
+            // Apply filter processing
+            this.filterOutputBuffer[i] = filter.processSingleSample(this.oscillatorOutputBuffer[i]);
+
+        }
+
+        // Apply Amp Envelope Processing
+        ampEnvelope.processBlock(this.filterOutputBuffer, this.ampEnvelopeOutputBuffer, blockSize);
 
         // Conversion from Mono sample to Stereo, applies panning modulated by LFO
-        double monoSample = processSample(input);
-        stereoOutput[0] = monoSample * leftGain;
-        stereoOutput[1] = monoSample * rightGain;
-        return stereoOutput;
+        double monoSample = null;s
+        for (int i = 0; i < blockSize; i++){
+            double monoSample = this.ampEnvelopeOutputBuffer[i];
+            this.stereoOutputBuffer[i * 2] = monoSample * leftGain;
+            this.stereoOutputBuffer[i * 2 + 1] = monoSample * rightGain;
+        }
     }
 }
