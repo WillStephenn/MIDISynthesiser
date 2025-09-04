@@ -18,7 +18,7 @@ public class Synthesiser{
     private final ArrayList<Voice> voices;
     private final double noVoices;
     private final double sampleRate;
-    private final double controlRate;
+    private final int controlRate;
 
     // Master Configs (synth-wide settings)
     // Oscillator
@@ -141,7 +141,7 @@ public class Synthesiser{
             synchronized (voices) {
                 voices.clear();
                 for (int i = 0; i < this.noVoices; i++) {
-                    voices.add(new Voice(this.waveform, 0, this.sampleRate, this.controlRate, 0));
+                    voices.add(new Voice(this.waveform, 0, this.sampleRate, this.controlRate, 0, this.blockSize));
                 }
             }
         }
@@ -152,6 +152,7 @@ public class Synthesiser{
         voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
         voice.setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModRange);
         voice.setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
+        voice.setPanDepth(this.panDepth);
     }
 
     // --- Real-time Parameter Control Setter Methods ---
@@ -453,7 +454,7 @@ public class Synthesiser{
             for (Voice voice : voices) {
                 if (voice.isActive()) {
                     // If the voice is active, process it's block and sum it into the output buffer.
-                    voice.processBlock(this.voiceOutputBuffer, this.lfoOutputBuffer, this.blockSize);
+                    voice.processBlock(this.lfoOutputBuffer, this.voiceOutputBuffer, this.blockSize);
                     for(int i = 0; i < this.blockSize * 2; i++){
                        stereoOutputBuffer[i] += this.voiceOutputBuffer[i] * this.mixStageAttenuation;
                     }

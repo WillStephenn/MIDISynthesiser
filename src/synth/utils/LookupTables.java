@@ -8,6 +8,7 @@ public class LookupTables {
     public static final int TABLE_SIZE = AudioConstants.LOOKUP_TABLE_SIZE;
 
     public static final double[] SINE = new double[TABLE_SIZE];
+    public static final double[] COSINE = new double[TABLE_SIZE];
     public static final double[] SQUARE = new double[TABLE_SIZE];
     public static final double[] SAW = new double[TABLE_SIZE];
     public static final double[] TRIANGLE = new double[TABLE_SIZE];
@@ -19,6 +20,10 @@ public class LookupTables {
             SINE[i] = Math.sin(2.0 * Math.PI * (double) i / TABLE_SIZE);
         }
 
+        // Cosine Table
+        for (int i = 0; i < TABLE_SIZE; i++) {
+            COSINE[i] = Math.cos(2.0 * Math.PI * (double) i / TABLE_SIZE);
+        }
         // Square Table
         for (int i = 0; i < TABLE_SIZE; i++) {
             SQUARE[i] = (i < TABLE_SIZE / 2) ? 1.0 : -1.0;
