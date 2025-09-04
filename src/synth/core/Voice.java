@@ -267,30 +267,18 @@ public class Voice implements AudioComponent{
         oscillator.processBlock(null, this.oscillatorOutputBuffer, blockSize);
         filterEnvelope.processBlock(null, this.filterEnvelopeOutputBuffer, blockSize);
 
-        // Process filter block. This uses single sample processing, because the voice is handling the filter modulation.
-        double filterEnvValue = 0.0;
-        double finalCutoff = 0.0;
-
-        for (int i = 0; i < blockSize; i ++){
-            // Control Rate Logic. Only updates filter paramaters every controlRate samples as an optimisation function.
-            // increasing the control rate in AudioConstants reduces the rate of paramater updating, but reduces audio fidelity.
-            if (controlRateCounter == 0){
-                // Calculate filter cutoff modulation
-                filterEnvValue = this.filterEnvelopeOutputBuffer[i];
-                finalCutoff = filterCutoff + (filterEnvValue * filterModRange);
-
-                // Clamp output
-                finalCutoff = Math.max(20.0, Math.min(20000.0, finalCutoff));
-
-                filter.setParameters(finalCutoff, this.filterResonance);
-            }
-            controlRateCounter = (controlRateCounter + 1) % controlRate;
-            // Apply filter processing
-            this.filterOutputBuffer[i] = filter.processSingleSample(this.oscillatorOutputBuffer[i] * this.preFilterMult) * this.postFilterMult;
-
+        // Apply Pre-Filter Gain Staging:
+        for (int i = 0; i < blockSize; i++) {
+            this.oscillatorOutputBuffer[i] *= this.preFilterMult;
         }
 
-        // Apply Amp Envelope Processing
+        // Set Filter Parameters
+        double filterEnvValue = this.filterEnvelopeOutputBuffer[0];
+        double finalCutoff = filterCutoff + (filterEnvValue * filterModRange);
+        filter.setParameters(finalCutoff, this.filterResonance);
+
+        // Apply Filter then Amp Env Processing
+        filter.processBlock(this.oscillatorOutputBuffer, this.filterOutputBuffer, blockSize);
         ampEnvelope.processBlock(this.filterOutputBuffer, this.ampEnvelopeOutputBuffer, blockSize);
 
         // Conversion from Mono sample to Stereo, applies panning modulated by LFO

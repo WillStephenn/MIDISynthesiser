@@ -6,6 +6,7 @@ package synth.utils;
 public class LookupTables {
 
     public static final int TABLE_SIZE = AudioConstants.LOOKUP_TABLE_SIZE;
+    public static final int RESONANCE_STEPS = 128;
 
     public static final double[] SINE = new double[TABLE_SIZE];
     public static final double[] COSINE = new double[TABLE_SIZE];
@@ -14,7 +15,13 @@ public class LookupTables {
     public static final double[] TRIANGLE = new double[TABLE_SIZE];
     public static final double[] TAN_TABLE = new double[TABLE_SIZE];
 
+    // Filter Coefficients
+    public static final double[][] A1_TABLE = new double[TABLE_SIZE][RESONANCE_STEPS];
+    public static final double[][] A2_TABLE = new double[TABLE_SIZE][RESONANCE_STEPS];
+    public static final double[][] A3_TABLE = new double[TABLE_SIZE][RESONANCE_STEPS];
+
     static {
+        System.out.println("Pre-computing LUTs... (This may take a moment)");
         // Sine Table
         for (int i = 0; i < TABLE_SIZE; i++) {
             SINE[i] = Math.sin(2.0 * Math.PI * (double) i / TABLE_SIZE);
@@ -47,5 +54,27 @@ public class LookupTables {
         for (int i = 0; i < TABLE_SIZE; i++) {
             TAN_TABLE[i] = Math.tan(Math.PI * (double) i / TABLE_SIZE);
         }
+
+        // Filter Coefficients
+        for (int cutoffIndex = 0; cutoffIndex < TABLE_SIZE; cutoffIndex++) {
+            double g = TAN_TABLE[cutoffIndex];
+
+            for (int resIndex = 0; resIndex < RESONANCE_STEPS; resIndex++) {
+                // Map the index to a resonance value (from 1.0 to 20.0)
+                double resonanceQ = 1.0 + (resIndex / (double)(RESONANCE_STEPS - 1)) * 19.0;
+                double k = 1.0 / resonanceQ;
+
+                // Calculate Filter Coefficients
+                double a1 = 1.0 / (1.0 + g * (g + k));
+                double a2 = g * a1;
+                double a3 = g * a2;
+
+                // Store the results in 2D LUTs
+                A1_TABLE[cutoffIndex][resIndex] = a1;
+                A2_TABLE[cutoffIndex][resIndex] = a2;
+                A3_TABLE[cutoffIndex][resIndex] = a3;
+            }
+        }
+        System.out.println("LUT pre-computation complete.");
     }
 }
