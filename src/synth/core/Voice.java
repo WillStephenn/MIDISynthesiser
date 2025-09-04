@@ -41,6 +41,10 @@ public class Voice implements AudioComponent{
     private double leftGain;
     private double rightGain;
 
+    // Output Var
+    private double[] stereoOutput = new double[2];
+
+
     /**
      * Constructs a new Voice with the specified waveform, pitch, sample rate, control rate, and pan position.
      * @param waveform The oscillator waveform.
@@ -276,6 +280,8 @@ public class Voice implements AudioComponent{
 
         // Conversion from Mono sample to Stereo, applies panning modulated by LFO
         double monoSample = processSample(input);
-        return new double[]{monoSample * leftGain, monoSample * rightGain};
+        stereoOutput[0] = monoSample * leftGain;
+        stereoOutput[1] = monoSample * rightGain;
+        return stereoOutput;
     }
 }

@@ -57,6 +57,9 @@ public class Synthesiser{
     // Panning
     private double panDepth;
 
+    // Output Var
+    private double[] stereoOutput = new double[2];
+
     /**
      * Constructs a new Synthesiser with a specified number of voices.
      * @param noVoices The number of voices for the synthesiser. Must be a positive number.
@@ -451,7 +454,10 @@ public class Synthesiser{
         sampleMixedL = Math.max(-1.0, Math.min(1.0, sampleMixedL));
         sampleMixedR = Math.max(-1.0, Math.min(1.0, sampleMixedR));
 
-        return new double[]{sampleMixedL, sampleMixedR};
+        stereoOutput[0] = sampleMixedL;
+        stereoOutput[1] = sampleMixedR;
+
+        return stereoOutput;
     }
 
 }
