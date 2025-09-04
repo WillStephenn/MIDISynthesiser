@@ -24,13 +24,14 @@ public class Main {
         try (SourceDataLine line = AudioDeviceConnector.getOutputLine(audioOutputDevice, audioFormat)) {
 
             // --- INITIALISE AND VALIDATE THE SYNTH, AUDIO AND MIDI DEVICES
+            assert line != null;
             line.open(audioFormat, AudioConstants.BUFFER_SIZE);
             line.start();
-            Synthesiser synth = new Synthesiser(
+            Synthesiser synth = new Synthesiser( // Point of dependency injection for entire synth stack.
                     AudioConstants.NUMBER_OF_VOICES,
                     AudioConstants.SAMPLE_RATE,
                     AudioConstants.CONTROL_RATE,
-                    AudioConstants.BLOCK_SIZE); // Point of dependency injection for entire synth stack.
+                    AudioConstants.BLOCK_SIZE);
 
             MidiDevice midiDevice = MidiDeviceConnector.connectToDevice(synth, midiInputDevice);
 
@@ -53,7 +54,7 @@ public class Main {
                 synth.processBlock(audioBlock);
 
                 // --- CONVERT BLOCK TO BYTES ---
-                for (int i = 0; i < AudioConstants.BUFFER_SIZE; i++) {
+                for (int i = 0; i < AudioConstants.BLOCK_SIZE; i++) {
                     double leftSample = audioBlock[i * 2];
                     double rightSample = audioBlock[i * 2 + 1];
 

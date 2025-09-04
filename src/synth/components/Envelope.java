@@ -191,7 +191,11 @@ public class Envelope implements AudioComponent {
                     }
                     break;
             }
-            outputBuffer[i] = inputBuffer[i] * currentMultiplier;
+            if (inputBuffer == null){
+                outputBuffer[i] = currentMultiplier;
+            } else {
+                outputBuffer[i] = inputBuffer[i] * currentMultiplier;
+            }
         }
     }
 }

@@ -266,12 +266,12 @@ public class Synthesiser{
 
     public void setLFOWaveform(Waveform LFOWaveForm) {
         if (this.LFOWaveForm != LFOWaveForm) {
-            updateWaveForm(LFOWaveForm);
+            updateLFOWaveform(LFOWaveForm);
         }
     }
 
     public void setMasterVolume(double volumeScalar){
-        this.mixStageAttenuation *= volumeScalar;
+        this.mixStageAttenuation = this.mixStageAttenuation * volumeScalar;
   ;  }
 
     /**
@@ -415,15 +415,17 @@ public class Synthesiser{
         // Check if note is already being played and switch it off if it is
         noteOff(pitchMIDI);
 
+        synchronized (voices){
         for (Voice voice : voices) {
-            if (!voice.isActive()) { // Find first inactive voice
-                // Apply Patch
-                voice.setOscillatorPitch(pitchMIDI);
-                voice.setVelocity(velocity);
-                updateVoiceParams(voice);
-                voice.setPanPosition(getPanPosition());
-                voice.noteOn();
-                return;
+                if (!voice.isActive()) { // Find first inactive voice
+                    // Apply Patch
+                    voice.setOscillatorPitch(pitchMIDI);
+                    voice.setVelocity(velocity);
+                    updateVoiceParams(voice);
+                    voice.setPanPosition(getPanPosition());
+                    voice.noteOn();
+                    return;
+                }
             }
         }
     }
@@ -433,9 +435,11 @@ public class Synthesiser{
      * @param pitchMIDI The MIDI pitch of the note to release.
      */
     public void noteOff(byte pitchMIDI){
-        for (Voice voice : voices){
-            if(voice.isActive() && (voice.getPitchMIDI() == pitchMIDI)){
-                voice.noteOff();
+        synchronized (voices){
+            for (Voice voice : voices){
+                if(voice.isActive() && (voice.getPitchMIDI() == pitchMIDI)){
+                    voice.noteOff();
+                }
             }
         }
     }

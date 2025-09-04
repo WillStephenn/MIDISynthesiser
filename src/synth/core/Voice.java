@@ -286,7 +286,7 @@ public class Voice implements AudioComponent{
             }
             controlRateCounter = (controlRateCounter + 1) % controlRate;
             // Apply filter processing
-            this.filterOutputBuffer[i] = filter.processSingleSample(this.oscillatorOutputBuffer[i]);
+            this.filterOutputBuffer[i] = filter.processSingleSample(this.oscillatorOutputBuffer[i] * this.preFilterMult) * this.postFilterMult;
 
         }
 
@@ -308,8 +308,8 @@ public class Voice implements AudioComponent{
             this.leftGain  = LookupTables.COSINE[index];
             this.rightGain = LookupTables.SINE[index];
 
-            this.stereoOutputBuffer[i * 2] = monoSample * leftGain;
-            this.stereoOutputBuffer[i * 2 + 1] = monoSample * rightGain;
+            stereoOutputBuffer[i * 2] = monoSample * leftGain;
+            stereoOutputBuffer[i * 2 + 1] = monoSample * rightGain;
         }
     }
 }
