@@ -1,5 +1,7 @@
 package synth.components.oscillators;
 
+import synth.utils.LookupTables;
+
 public class SquareOscillator extends Oscillator{
 
     public SquareOscillator(double sampleRate){
@@ -9,11 +11,7 @@ public class SquareOscillator extends Oscillator{
 
     @Override
     protected double calculateAmplitude() {
-        if(phase < 0.5){
-            return -1;
-        }
-        else {
-            return 1;
-        }
+        int index = (int) phase;
+        return LookupTables.SQUARE[index];
     }
 }

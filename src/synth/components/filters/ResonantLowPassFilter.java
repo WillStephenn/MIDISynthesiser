@@ -1,5 +1,7 @@
 package synth.components.filters;
 
+import synth.utils.LookupTables;
+
 /**
  * Implements a resonant low-pass filter using the Topology-Preserving Transform (TPT)
  * State-Variable Filter (SVF) design by Vadim Zavalishin.
@@ -38,7 +40,12 @@ public class ResonantLowPassFilter extends Filter{
             throw new IllegalArgumentException("Resonance (Q) must be positive.");
         }
 
-        double g = Math.tan(Math.PI * cutoffFrequency / this.sampleRate);
+        int index = (int) (LookupTables.TABLE_SIZE * cutoffFrequency/this.sampleRate);
+        if(index >= LookupTables.TABLE_SIZE) {
+            index = LookupTables.TABLE_SIZE -1;
+        }
+
+        double g = LookupTables.TAN_TABLE[index];
         double k = 1.0 / resonanceQ;
 
         // Pre-calculate TPT coefficients

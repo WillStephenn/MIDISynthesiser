@@ -1,5 +1,7 @@
 package synth.components.oscillators;
 
+import synth.utils.LookupTables;
+
 public class SawOscillator extends Oscillator{
 
     public SawOscillator(double sampleRate){
@@ -9,7 +11,7 @@ public class SawOscillator extends Oscillator{
 
     @Override
     protected double calculateAmplitude(){
-        // Map phase from range 0.0 -> 1.0 to -1.0 -> 1.0
-        return (phase * 2.0) - 1.0;
+        int index = (int)phase;
+        return LookupTables.SAW[index];
     }
 }

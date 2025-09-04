@@ -1,4 +1,5 @@
 package synth.components.oscillators;
+import synth.utils.LookupTables;
 
 public class SineOscillator extends Oscillator{
 
@@ -13,19 +14,20 @@ public class SineOscillator extends Oscillator{
             throw new IllegalArgumentException("Frequency cannot be negative.");
         }
         this.frequency = frequency;
-        this.phaseIncrement = (2 * Math.PI * frequency)/sampleRate;
+        this.phaseIncrement = (LookupTables.TABLE_SIZE * frequency) / sampleRate;
     }
 
     @Override
     protected double calculateAmplitude(){
-        return Math.sin(phase);
+        int index = (int)phase;
+        return LookupTables.SINE[index];
     }
 
     @Override
     protected void advancePhase(){
         phase += phaseIncrement;
-        if (phase >= 2 * Math.PI) {
-            phase -= 2 * Math.PI;
+        if (phase >= LookupTables.TABLE_SIZE) {
+            phase -= LookupTables.TABLE_SIZE;
         }
     }
 }

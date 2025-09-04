@@ -1,6 +1,7 @@
 package synth.components.oscillators;
 
 import synth.core.AudioComponent;
+import synth.utils.LookupTables;
 
 /**
  * Represents an oscillator, which generates a periodic waveform at a specified frequency.
@@ -38,7 +39,11 @@ public abstract class Oscillator implements AudioComponent {
      */
     protected void advancePhase(){
         this.phase += phaseIncrement;
-        if (phase >= 1.0) { phase -= 1.0; }
+
+        // Wrap phase increment
+        if (this.phase >= LookupTables.TABLE_SIZE) {
+            this.phase -= LookupTables.TABLE_SIZE;
+        }
     }
     /**
      * Sets the frequency of the oscillator.
@@ -49,7 +54,7 @@ public abstract class Oscillator implements AudioComponent {
             throw new IllegalArgumentException("Frequency cannot be negative.");
         }
         this.frequency = frequency;
-        this.phaseIncrement = (frequency/sampleRate); // Default Phase Increment Equation, override for non-linear oscillators
+        this.phaseIncrement = (LookupTables.TABLE_SIZE * frequency) / sampleRate; // Default Phase Increment Equation, override for non-linear oscillators
     }
 
     /**
