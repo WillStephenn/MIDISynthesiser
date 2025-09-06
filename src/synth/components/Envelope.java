@@ -19,7 +19,6 @@ public class Envelope implements AudioComponent {
     }
 
     // State Variables
-    protected double sampleRate;
     protected Stage currentStage;
     protected double currentMultiplier;
     protected double attackIncrement;
@@ -45,7 +44,6 @@ public class Envelope implements AudioComponent {
             throw new IllegalArgumentException("Sample rate must be positive.");
         }
         this.currentStage = Stage.IDLE;
-        this.sampleRate = sampleRate;
         this.sampleRateReciprocal = 1.0/ sampleRate;
 
         // Default Envelope patch

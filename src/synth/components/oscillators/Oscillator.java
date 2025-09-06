@@ -10,10 +10,12 @@ import synth.utils.LookupTables;
 public abstract class Oscillator implements AudioComponent {
 
     // Instance Variables
-    protected final double sampleRate;
     protected double phase;
     protected double frequency;
     protected double phaseIncrement;
+
+    // Pre Computed Constant
+    protected final double sampleRateReciprocal;
 
     /**
      * Constructs an Oscillator with a given sample rate.
@@ -23,7 +25,7 @@ public abstract class Oscillator implements AudioComponent {
         if (sampleRate <= 0) {
             throw new IllegalArgumentException("Sample rate must be positive.");
         }
-        this.sampleRate = sampleRate;
+        this.sampleRateReciprocal = 1.0/ sampleRate;
         this.phase = 0.0;
     }
 
@@ -54,7 +56,7 @@ public abstract class Oscillator implements AudioComponent {
             throw new IllegalArgumentException("Frequency cannot be negative.");
         }
         this.frequency = frequency;
-        this.phaseIncrement = (LookupTables.TABLE_SIZE * frequency) / sampleRate; // Default Phase Increment Equation, override for non-linear oscillators
+        this.phaseIncrement = (LookupTables.TABLE_SIZE * frequency) * this.sampleRateReciprocal; // Default Phase Increment Equation, override for non-linear oscillators
     }
 
     /**

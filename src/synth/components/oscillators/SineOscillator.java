@@ -14,7 +14,7 @@ public class SineOscillator extends Oscillator{
             throw new IllegalArgumentException("Frequency cannot be negative.");
         }
         this.frequency = frequency;
-        this.phaseIncrement = (LookupTables.TABLE_SIZE * frequency) / sampleRate;
+        this.phaseIncrement = (LookupTables.TABLE_SIZE * frequency) * this.sampleRateReciprocal;
     }
 
     @Override
@@ -23,11 +23,4 @@ public class SineOscillator extends Oscillator{
         return LookupTables.SINE[index];
     }
 
-    @Override
-    protected void advancePhase(){
-        phase += phaseIncrement;
-        if (phase >= LookupTables.TABLE_SIZE) {
-            phase -= LookupTables.TABLE_SIZE;
-        }
-    }
 }
