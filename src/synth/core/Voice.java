@@ -13,7 +13,12 @@ import synth.utils.LookupTables;
 public class Voice implements AudioComponent{
 
     // Audio Component Objects
-    private final Oscillator oscillator;
+    private Oscillator oscillator;
+    private final Oscillator sine;
+    private final Oscillator saw;
+    private final Oscillator triangle;
+    private final Oscillator square;
+
     private final ResonantLowPassFilter filter;
     private final Envelope ampEnvelope;
     private final Envelope filterEnvelope;
@@ -26,7 +31,6 @@ public class Voice implements AudioComponent{
     private double filterCutoff;
     private double filterResonance;
     private double filterModRange;
-    private final int controlRate;
     private int controlRateCounter;
 
     // Gain Staging
@@ -51,43 +55,37 @@ public class Voice implements AudioComponent{
     private final double[] stereoOutputBuffer;
 
     /**
-     * Constructs a new Voice with the specified waveform, pitch, sample rate, control rate, and pan position.
-     * @param waveform The oscillator waveform.
+     * Constructs a new Voice with the specified waveform, pitch, sample rate, and pan position.
+     *
+     * @param waveform       The oscillator waveform.
      * @param pitchFrequency The initial pitch frequency of the oscillator. Must not be negative.
-     * @param sampleRate The audio sample rate. Must be positive.
-     * @param controlRate The rate at which control signals are updated. Must be positive.
-     * @param panPosition The initial stereo pan position (-1.0 to 1.0).
+     * @param sampleRate     The audio sample rate. Must be positive.
+     * @param panPosition    The initial stereo pan position (-1.0 to 1.0).
      */
-    public Voice (Synthesiser.Waveform waveform, double pitchFrequency, double sampleRate, int controlRate, double panPosition, int blockSize){
+    public Voice (Synthesiser.Waveform waveform, double pitchFrequency, double sampleRate, int blockSize){
         if (pitchFrequency < 0) {
             throw new IllegalArgumentException("Initial pitch frequency cannot be negative.");
         }
-        if (controlRate <= 0) {
-            throw new IllegalArgumentException("Control rate must be positive.");
-        }
         // Audio Components
+        this.oscillator = new SineOscillator(sampleRate);
+        this.sine = new SineOscillator(sampleRate);
+        this.saw = new SawOscillator(sampleRate);
+        this.triangle = new TriangleOscillator(sampleRate);
+        this.square = new SquareOscillator(sampleRate);
+        setOscillatorWaveform(waveform);
+
         this.filter = new ResonantLowPassFilter(sampleRate);
         this.ampEnvelope = new Envelope(sampleRate);
         this.filterEnvelope = new Envelope(sampleRate);
 
-        setPanPosition(panPosition);
+        setPanPosition(0);
 
         // Filter Defaults
         this.filterCutoff = 20000;
         this.filterResonance = 0.01;
         this.filterModRange = 2000;
         this.filter.setParameters(this.filterCutoff, this.filterResonance);
-        this.controlRate = controlRate;
         this.controlRateCounter = 0;
-
-        // Synth Oscillator switch
-        switch (waveform){
-            case SINE -> this.oscillator = new SineOscillator(sampleRate);
-            case SAW -> this.oscillator = new SawOscillator(sampleRate);
-            case TRIANGLE -> this.oscillator = new TriangleOscillator(sampleRate);
-            case SQUARE -> this.oscillator = new SquareOscillator(sampleRate);
-            default -> throw new IllegalArgumentException("Unsupported waveform: " + waveform);
-        }
 
         // Set Oscillator starting pitch
         this.pitchFrequency = pitchFrequency;
@@ -117,7 +115,17 @@ public class Voice implements AudioComponent{
             throw new IllegalArgumentException("MIDI pitch cannot be negative.");
         }
         this.pitchMIDI = pitchMIDI;
-        this.oscillator.setFrequency(440.0 * Math.pow(2.0, (pitchMIDI - 69) / 12.0));
+        this.oscillator.setFrequency(LookupTables.MIDI_TO_HZ[pitchMIDI]);
+    }
+
+    public void setOscillatorWaveform(Synthesiser.Waveform waveform){
+        switch (waveform) {
+            case SINE -> this.oscillator = this.sine;
+            case SQUARE -> this.oscillator = this.square;
+            case TRIANGLE -> this.oscillator = this.triangle;
+            case SAW -> this.oscillator = this.saw;
+            default -> throw new IllegalArgumentException("Unsupported waveform: " + waveform);
+        }
     }
 
     /**

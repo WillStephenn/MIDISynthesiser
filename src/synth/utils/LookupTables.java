@@ -20,6 +20,9 @@ public class LookupTables {
     public static final double[][] A2_TABLE = new double[TABLE_SIZE][RESONANCE_STEPS];
     public static final double[][] A3_TABLE = new double[TABLE_SIZE][RESONANCE_STEPS];
 
+    // Midi to pitch
+    public static final double[] MIDI_TO_HZ = new double[128];
+
     static {
         System.out.println("Pre-computing LUTs... (This may take a moment)");
         // Sine Table
@@ -74,6 +77,11 @@ public class LookupTables {
                 A2_TABLE[cutoffIndex][resIndex] = a2;
                 A3_TABLE[cutoffIndex][resIndex] = a3;
             }
+        }
+
+        // Midi not to pitch
+        for (int i = 0; i < 128; i++) {
+            MIDI_TO_HZ[i] = 440.0 * Math.pow(2.0, (i - 69) / 12.0);
         }
         System.out.println("LUT pre-computation complete.");
     }

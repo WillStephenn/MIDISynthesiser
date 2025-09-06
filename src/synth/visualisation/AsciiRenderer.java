@@ -1,10 +1,10 @@
 package synth.visualisation;
 
 import synth.core.Synthesiser;
-
-import java.util.ArrayList;
+import synth.utils.AudioConstants;
 
 public class AsciiRenderer {
+    private static final byte[] activeNotes = new byte[AudioConstants.NUMBER_OF_VOICES];
 
     /**
      * Clears the console screen. This method is used to create an animation
@@ -35,13 +35,14 @@ public class AsciiRenderer {
         clearConsole();
 
         // Active Notes Rendering
-        ArrayList<Byte> activeNotes = synth.getActiveNotes();
+        int activeNoteCount = synth.getActiveNotes(activeNotes); // get active notes returns the number of active notes.
         StringBuilder pianoDisplay = new StringBuilder();
         String[] noteNames = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
         for (int i = 0; i < 12; i++) {
             boolean noteIsActive = false;
-            for (byte activeNote : activeNotes) {
+            for (int j = 0; j < activeNoteCount; j++) {
+                byte activeNote = activeNotes[j];
                 if (activeNote % 12 == i) {
                     noteIsActive = true;
                     break;

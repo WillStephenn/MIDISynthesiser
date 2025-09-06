@@ -30,7 +30,6 @@ public class Main {
             Synthesiser synth = new Synthesiser( // Point of dependency injection for entire synth stack.
                     AudioConstants.NUMBER_OF_VOICES,
                     AudioConstants.SAMPLE_RATE,
-                    AudioConstants.CONTROL_RATE,
                     AudioConstants.BLOCK_SIZE);
 
             MidiDevice midiDevice = MidiDeviceConnector.connectToDevice(synth, midiInputDevice);
