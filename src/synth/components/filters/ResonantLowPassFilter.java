@@ -16,12 +16,18 @@ public class ResonantLowPassFilter extends Filter{
     private int cutoffIndex = 0;
     private int resonanceIndex = 0;
 
+    // Constant Pre-Computed Scalars
+    private final double cutoffScalar;
+    private final double resonanceScalar;
+
     /**
      * Constructs a ResonantLowPassFilter with a given sample rate.
      * @param sampleRate The sample rate of the audio system.
      */
     public ResonantLowPassFilter(double sampleRate){
         super(sampleRate);
+        this.cutoffScalar = LookupTables.TABLE_SIZE / this.sampleRate;
+        this.resonanceScalar = (LookupTables.RESONANCE_STEPS - 1) / 19.0;
         setParameters(1000, 1);
     }
 
@@ -39,8 +45,8 @@ public class ResonantLowPassFilter extends Filter{
         }
 
         // Calculate the index for the cutoff & resonance
-        this.cutoffIndex = (int) (LookupTables.TABLE_SIZE * cutoffFrequency / this.sampleRate);
-        this.resonanceIndex = (int) (((resonanceQ - 1.0) / 19.0) * (LookupTables.RESONANCE_STEPS - 1));
+        this.cutoffIndex = (int) (cutoffFrequency * this.cutoffScalar);
+        this.resonanceIndex = (int) ((resonanceQ - 1.0) * this.resonanceScalar);
     }
 
     /**
