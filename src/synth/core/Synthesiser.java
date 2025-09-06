@@ -1,9 +1,6 @@
 package synth.core;
 
 import synth.components.oscillators.*;
-import synth.utils.AudioConstants;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -13,8 +10,6 @@ import java.util.Arrays;
 public class Synthesiser{
     // Control all the voices. Bundles them up in an arraylist ready to be shipped to the buffer.
     private final Voice[] voices;
-    private final int noVoices;
-    private final double sampleRate;
 
     // Master Configs (synth-wide settings)
     // Oscillator
@@ -71,13 +66,11 @@ public class Synthesiser{
         if (noVoices <= 0) {
             throw new IllegalArgumentException("Number of voices must be positive.");
         }
-        this.noVoices = noVoices;
-        this.mixStageAttenuation = 1.0 / Math.sqrt(this.noVoices);
-        this.sampleRate = sampleRate;
-        this.voices = new Voice[this.noVoices];
+        this.mixStageAttenuation = 1.0 / Math.sqrt(noVoices);
+        this.voices = new Voice[noVoices];
 
         // Populate voice bank
-        for (int i = 0; i < this.noVoices; i++){
+        for (int i = 0; i < noVoices; i++){
             voices[i] = new Voice(Waveform.SINE, 0, sampleRate, blockSize);
         }
 
@@ -92,10 +85,10 @@ public class Synthesiser{
         this.lfoOutputBuffer = new double[this.blockSize];
 
         // Construct LFO Oscillators
-        this.sineLFO = new SineOscillator(this.sampleRate);
-        this.sawLFO = new SawOscillator(this.sampleRate);
-        this.triangleLFO = new TriangleOscillator(this.sampleRate);
-        this.squareLFO = new SquareOscillator(this.sampleRate);
+        this.sineLFO = new SineOscillator(sampleRate);
+        this.sawLFO = new SawOscillator(sampleRate);
+        this.triangleLFO = new TriangleOscillator(sampleRate);
+        this.squareLFO = new SquareOscillator(sampleRate);
 
         // Default Synth Patch
         loadPatch( // Applies default patch and populates the voice bank
@@ -172,7 +165,7 @@ public class Synthesiser{
     }
 
     public void setFilterResonance(double resonance) {
-        this.filterResonance = Math.max(1.0, Math.min(20.0, resonance)); // Clamp from 1 - 20
+        this.filterResonance = Math.max(1.0, Math.min(20.0, resonance)); // Clamp from 1 to 20
         for (int i = 0; i < voices.length; i++) {
             voices[i].setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModRange);
         }
@@ -279,7 +272,7 @@ public class Synthesiser{
 
     public void setMasterVolume(double volumeScalar){
         this.mixStageAttenuation = this.mixStageAttenuation * volumeScalar;
-        ;  }
+    }
 
     /**
      * Applies all current patch settings to all voices.

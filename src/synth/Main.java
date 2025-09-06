@@ -45,10 +45,10 @@ public class Main {
             double renderCounter = 0;
 
             while(true){
-                if (renderCounter == 0){
-                    AsciiRenderer.render(synth);
-                }
-                renderCounter = (renderCounter + 1)% AudioConstants.RENDER_RATE;
+//                if (renderCounter == 0){
+//                    AsciiRenderer.render(synth);
+//                }
+//                renderCounter = (renderCounter + 1)% AudioConstants.RENDER_RATE;
 
                 synth.processBlock(audioBlock);
 

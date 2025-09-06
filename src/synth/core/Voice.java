@@ -47,6 +47,10 @@ public class Voice implements AudioComponent{
     private double leftGain;
     private double rightGain;
 
+    // Constants
+    private static final double angleIndexScalar = LookupTables.TABLE_SIZE / (2.0 * Math.PI);
+    private static final double panAngleScalar = Math.PI/4;
+
     // Output Buffers
     private final double[] oscillatorOutputBuffer;
     private final double[] filterOutputBuffer;
@@ -298,9 +302,9 @@ public class Voice implements AudioComponent{
             monoSample = this.ampEnvelopeOutputBuffer[i] * this.velocityMult;
 
             currentPanPosition = lfoBuffer[i] * this.panDepth;
-            panAngle = (currentPanPosition + 1.0) * (Math.PI / 4.0);
+            panAngle = (currentPanPosition + 1.0) * panAngleScalar;
 
-            int index = (int) (panAngle * (LookupTables.TABLE_SIZE / (2.0 * Math.PI)));
+            int index = (int) (panAngle * angleIndexScalar);
             this.leftGain  = LookupTables.COSINE[index];
             this.rightGain = LookupTables.SINE[index];
 
