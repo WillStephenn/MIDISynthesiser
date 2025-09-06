@@ -16,6 +16,7 @@ public abstract class Oscillator implements AudioComponent {
 
     // Pre Computed Constant
     protected final double sampleRateReciprocal;
+    protected static final int phaseMask = LookupTables.TABLE_SIZE - 1;
 
     /**
      * Constructs an Oscillator with a given sample rate.
@@ -30,22 +31,12 @@ public abstract class Oscillator implements AudioComponent {
     }
 
     // Methods
-    /**
-     * Calculates the current amplitude of the waveform based on the current phase.
-     * @return The calculated amplitude.
-     */
-    protected abstract double calculateAmplitude();
 
     /**
      * Advances the phase of the oscillator for the next sample.
      */
     protected void advancePhase(){
         this.phase += phaseIncrement;
-
-        // Wrap phase increment
-        if (this.phase >= LookupTables.TABLE_SIZE) {
-            this.phase -= LookupTables.TABLE_SIZE;
-        }
     }
     /**
      * Sets the frequency of the oscillator.
@@ -68,10 +59,5 @@ public abstract class Oscillator implements AudioComponent {
      * @param blockSize The number of samples to generate.
      */
     @Override
-    public void processBlock(double[] inputBuffer, double[] outputBuffer, int blockSize){
-        for (int i = 0; i < blockSize; i++){
-            outputBuffer[i] = calculateAmplitude();
-            advancePhase();
-        }
-    }
+    public abstract void processBlock(double[] inputBuffer, double[] outputBuffer, int blockSize);
 }
