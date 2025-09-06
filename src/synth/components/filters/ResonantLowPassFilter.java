@@ -27,7 +27,7 @@ public class ResonantLowPassFilter extends Filter{
     public ResonantLowPassFilter(double sampleRate){
         super(sampleRate);
         this.cutoffScalar = LookupTables.TABLE_SIZE / this.sampleRate;
-        this.resonanceScalar = (LookupTables.RESONANCE_STEPS - 1) / 19.0;
+        this.resonanceScalar = (LookupTables.RESONANCE_STEPS - 1) / 19.0; // Resonance ranges from 1 to 20
         setParameters(1000, 1);
     }
 

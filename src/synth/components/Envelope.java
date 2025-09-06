@@ -26,6 +26,9 @@ public class Envelope implements AudioComponent {
     protected double decayIncrement;
     protected double releaseIncrement;
 
+    // Pre Computed Constant
+    private final double sampleRateReciprocal;
+
     // Settings
     // All timings are measured in seconds.
     protected double attackTime;
@@ -43,6 +46,7 @@ public class Envelope implements AudioComponent {
         }
         this.currentStage = Stage.IDLE;
         this.sampleRate = sampleRate;
+        this.sampleRateReciprocal = 1.0/ sampleRate;
 
         // Default Envelope patch
         setEnvelope(2, 2, 0.5,  3);
@@ -76,7 +80,7 @@ public class Envelope implements AudioComponent {
         if(attackTime == 0.0){
             this.attackIncrement = 1.0;
         } else{
-            this.attackIncrement = 1.0/(attackTime * sampleRate);
+            this.attackIncrement = this.sampleRateReciprocal / this.attackTime;
         }
     }
 
@@ -92,7 +96,7 @@ public class Envelope implements AudioComponent {
         if(decayTime == 0.0){
             this.decayIncrement = 1.0 - sustainLevel;
         } else {
-            this.decayIncrement = (1.0 - sustainLevel) / (decayTime * sampleRate);
+            this.decayIncrement = (1.0 - sustainLevel) * this.sampleRateReciprocal / this.decayTime;
         }
     }
 
@@ -117,9 +121,10 @@ public class Envelope implements AudioComponent {
         }
         this.releaseTime = seconds;
         if (releaseTime == 0) {
+            // sustainLevel is already the total amount to change, so no increment needed
             this.releaseIncrement = sustainLevel;
         } else {
-            this.releaseIncrement = sustainLevel / (releaseTime * sampleRate);
+            this.releaseIncrement = sustainLevel * this.sampleRateReciprocal / this.releaseTime;
         }
     }
 
