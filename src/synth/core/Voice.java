@@ -4,6 +4,8 @@ import synth.components.Envelope;
 import synth.components.filters.ResonantLowPassFilter;
 import synth.components.oscillators.*;
 import synth.utils.LookupTables;
+import java.util.Map;
+
 
 /**
  * Represents a single voice in the synthesiser, encapsulating all audio components
@@ -311,5 +313,75 @@ public class Voice implements AudioComponent{
             stereoOutputBuffer[i * 2] = monoSample * leftGain;
             stereoOutputBuffer[i * 2 + 1] = monoSample * rightGain;
         }
+    }
+
+    /**
+     * Processes a block of audio, applying the envelope to each sample, and records performance metrics.
+     * @param lfoBuffer The LFO signal for modulation.
+     * @param stereoOutputBuffer The buffer where the modulated audio will be written.
+     * @param blockSize The number of samples to process.
+     * @param timings A map to store the execution time of each processing stage.
+     */
+    public void processBlockInstrumented(double[] lfoBuffer, double[] stereoOutputBuffer, int blockSize, Map<String, Long> timings) {
+        long startTime, endTime;
+
+        // Oscillator
+        startTime = System.nanoTime();
+        oscillator.processBlock(null, this.oscillatorOutputBuffer, blockSize);
+        endTime = System.nanoTime();
+        timings.merge("Oscillator", endTime - startTime, Long::sum);
+
+        // Filter Envelope
+        startTime = System.nanoTime();
+        filterEnvelope.processBlock(null, this.filterEnvelopeOutputBuffer, blockSize);
+        endTime = System.nanoTime();
+        timings.merge("Filter Envelope", endTime - startTime, Long::sum);
+
+        // Pre-Filter Gain
+        startTime = System.nanoTime();
+        for (int i = 0; i < blockSize; i++) {
+            this.oscillatorOutputBuffer[i] *= this.preFilterMult;
+        }
+        endTime = System.nanoTime();
+        timings.merge("Pre-Filter Gain", endTime - startTime, Long::sum);
+
+        // Filter Parameter Calculation
+        startTime = System.nanoTime();
+        double filterEnvValue = this.filterEnvelopeOutputBuffer[0];
+        double finalCutoff = filterCutoff + (filterEnvValue * filterModRange);
+        filter.setParameters(finalCutoff, this.filterResonance);
+        endTime = System.nanoTime();
+        timings.merge("Filter Params", endTime - startTime, Long::sum);
+
+        // Filtering
+        startTime = System.nanoTime();
+        filter.processBlock(this.oscillatorOutputBuffer, this.filterOutputBuffer, blockSize);
+        endTime = System.nanoTime();
+        timings.merge("Filter", endTime - startTime, Long::sum);
+
+        // Amplitude Envelope Processing
+        startTime = System.nanoTime();
+        ampEnvelope.processBlock(this.filterOutputBuffer, this.ampEnvelopeOutputBuffer, blockSize);
+        endTime = System.nanoTime();
+        timings.merge("Amp Envelope", endTime - startTime, Long::sum);
+
+        // Stereo Panning & Output
+        startTime = System.nanoTime();
+        double monoSample = 0.0;
+        double currentPanPosition = 0.0;
+        double panAngle = 0.0;
+
+        for (int i = 0; i < blockSize; i++){
+            monoSample = this.ampEnvelopeOutputBuffer[i] * this.velocityMult;
+            currentPanPosition = lfoBuffer[i] * this.panDepth;
+            panAngle = (currentPanPosition + 1.0) * panAngleScalar;
+            int index = (int) (panAngle * angleIndexScalar);
+            this.leftGain  = LookupTables.COSINE[index];
+            this.rightGain = LookupTables.SINE[index];
+            stereoOutputBuffer[i * 2] = monoSample * leftGain;
+            stereoOutputBuffer[i * 2 + 1] = monoSample * rightGain;
+        }
+        endTime = System.nanoTime();
+        timings.merge("Panning", endTime - startTime, Long::sum);
     }
 }

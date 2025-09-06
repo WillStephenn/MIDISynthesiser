@@ -2,6 +2,8 @@ package synth.core;
 
 import synth.components.oscillators.*;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The main synthesiser class that manages and processes multiple voices.
@@ -92,7 +94,7 @@ public class Synthesiser{
 
         // Default Synth Patch
         loadPatch( // Applies default patch and populates the voice bank
-                Waveform.SQUARE, // Synth Waveform
+                Waveform.SINE, // Synth Waveform
                 1000,     // filterCutoff
                 3,       // filterResonance
                 2000.0,  // filterModRange (Hz)
@@ -460,6 +462,7 @@ public class Synthesiser{
         // Populate LFO buffer
         LFO.processBlock(null, this.lfoOutputBuffer, blockSize);
 
+        // Voice Processing and Mixing
         synchronized (voices) {
             for (int i = 0; i < voices.length; i++) {
                 Voice voice = voices[i];
@@ -481,5 +484,53 @@ public class Synthesiser{
                 stereoOutputBuffer[i] = -1.0;
             }
         }
+    }
+    /**
+     * Processes one block of audio samples and returns performance timings.
+     * @return A map containing the total time taken for each processing stage in nanoseconds.
+     */
+    public Map<String, Long> processBlockInstrumented(double[] stereoOutputBuffer){
+        Map<String, Long> timings = new HashMap<>();
+        long startTime, endTime;
+
+        // Clear the output buffer
+        Arrays.fill(stereoOutputBuffer, 0.0);
+
+        // Populate LFO buffer
+        startTime = System.nanoTime();
+        LFO.processBlock(null, this.lfoOutputBuffer, blockSize);
+        endTime = System.nanoTime();
+        timings.merge("LFO", endTime - startTime, Long::sum);
+
+        // Voice Processing and Mixing
+        startTime = System.nanoTime();
+        synchronized (voices) {
+            for (int i = 0; i < voices.length; i++) {
+                Voice voice = voices[i];
+                if (voice.isActive()) {
+                    voice.processBlockInstrumented(this.lfoOutputBuffer, this.voiceOutputBuffer, this.blockSize, timings);
+                    for(int j = 0; j < this.blockSize * 2; j++){
+                        stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * this.mixStageAttenuation;
+                    }
+                }
+            }
+        }
+        endTime = System.nanoTime();
+        timings.merge("Voice Processing & Mix", endTime - startTime, Long::sum);
+
+
+        // Hard Clipping
+        startTime = System.nanoTime();
+        for (int i = 0; i < blockSize * 2; i++) {
+            if (stereoOutputBuffer[i] > 1.0) {
+                stereoOutputBuffer[i] = 1.0;
+            } else if (stereoOutputBuffer[i] < -1.0) {
+                stereoOutputBuffer[i] = -1.0;
+            }
+        }
+        endTime = System.nanoTime();
+        timings.merge("Hard Clipping", endTime - startTime, Long::sum);
+
+        return timings;
     }
 }
