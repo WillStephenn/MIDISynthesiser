@@ -88,7 +88,7 @@ public class Voice implements AudioComponent{
 
         // Filter Defaults
         this.filterCutoff = 20000;
-        this.filterResonance = 0.01;
+        this.filterResonance = 1;
         this.filterModRange = 2000;
         this.filter.setParameters(this.filterCutoff, this.filterResonance);
         this.controlRateCounter = 0;
