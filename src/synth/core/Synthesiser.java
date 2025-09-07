@@ -468,9 +468,10 @@ public class Synthesiser{
                 Voice voice = voices[i];
                 if (voice.isActive()) {
                     // If the voice is active, process its block and sum it into the output buffer.
-                    voice.processBlock(this.lfoOutputBuffer, this.voiceOutputBuffer, this.blockSize);
+                    voice.processBlock(null, this.voiceOutputBuffer, this.blockSize);
                     for(int j = 0; j < this.blockSize * 2; j++){
                         stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * this.mixStageAttenuation;
+                        this.LFOPosition = lfoOutputBuffer[j/2];
                     }
                 }
             }
@@ -511,6 +512,7 @@ public class Synthesiser{
                     voice.processBlockInstrumented(this.lfoOutputBuffer, this.voiceOutputBuffer, this.blockSize, timings);
                     for(int j = 0; j < this.blockSize * 2; j++){
                         stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * this.mixStageAttenuation;
+                        this.LFOPosition = lfoOutputBuffer[j/2];
                     }
                 }
             }

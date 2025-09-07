@@ -11,7 +11,7 @@ public class PerformanceTest {
 
     public static void main(String[] args) {
         // Setup
-        int numberOfBlocksToProcess = 10000;
+        int numberOfBlocksToProcess = 2000;
         Synthesiser synth = new Synthesiser(
                 AudioConstants.NUMBER_OF_VOICES, //
                 AudioConstants.SAMPLE_RATE,     //
@@ -21,8 +21,8 @@ public class PerformanceTest {
         Map<String, Long> totalTimings = new HashMap<>();
 
         // Activate voices
-        System.out.println("Activating 5 voices for the test...");
-        for (int i = 0; i < 5; i++) {
+        System.out.println("Activating " + AudioConstants.NUMBER_OF_VOICES + " voices for the test...");
+        for (int i = 0; i < AudioConstants.NUMBER_OF_VOICES; i++) {
             synth.noteOn((byte) (60 + i), 1.0);
         }
 

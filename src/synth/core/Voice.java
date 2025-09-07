@@ -49,9 +49,8 @@ public class Voice implements AudioComponent{
     private double leftGain;
     private double rightGain;
 
-    // Constants
-    private static final double angleIndexScalar = LookupTables.TABLE_SIZE / (2.0 * Math.PI);
-    private static final double panAngleScalar = Math.PI/4;
+    // Pre Computed Constants
+    private static final double panIndexScalar = LookupTables.TABLE_SIZE / (2.0 * Math.PI) * (Math.PI/4);
 
     // Output Buffers
     private final double[] oscillatorOutputBuffer;
@@ -160,9 +159,13 @@ public class Voice implements AudioComponent{
         }
         // Apply the Pan Law
         this.panPosition = panPosition;
-        double panAngle = (this.panPosition + 1.0) * (Math.PI / 4.0);
-        this.leftGain = Math.cos(panAngle);
-        this.rightGain = Math.sin(panAngle);
+        int index = (int) ((panPosition + 1.0) * panIndexScalar);
+        this.leftGain  = LookupTables.COSINE[index];
+        this.rightGain = LookupTables.SINE[index];
+    }
+
+    public void setPanDepth(double panDepth) {
+        this.panDepth = panDepth;
     }
 
     // Amp Envelope:
@@ -233,9 +236,7 @@ public class Voice implements AudioComponent{
         this.velocityMult = velocityMult;
     }
 
-    public void setPanDepth(double panDepth) {
-        this.panDepth = panDepth;
-    }
+
 
     /**
      * Triggers the note-on phase for the voice's envelopes.
@@ -276,7 +277,7 @@ public class Voice implements AudioComponent{
      * @param blockSize The number of samples to process.
      */
     @Override
-    public void processBlock(double[] lfoBuffer, double[] stereoOutputBuffer, int blockSize) {
+    public void processBlock(double[] nullBuffer, double[] stereoOutputBuffer, int blockSize) {
         // Populate base audio component buffers
         oscillator.processBlock(null, this.oscillatorOutputBuffer, blockSize);
         filterEnvelope.processBlock(null, this.filterEnvelopeOutputBuffer, blockSize);
@@ -297,19 +298,9 @@ public class Voice implements AudioComponent{
 
         // Conversion from Mono sample to Stereo, applies panning modulated by LFO
         double monoSample = 0.0;
-        double currentPanPosition = 0.0;
-        double panAngle = 0.0;
 
         for (int i = 0; i < blockSize; i++){
-            monoSample = this.ampEnvelopeOutputBuffer[i] * this.velocityMult;
-
-            currentPanPosition = lfoBuffer[i] * this.panDepth;
-            panAngle = (currentPanPosition + 1.0) * panAngleScalar;
-
-            int index = (int) (panAngle * angleIndexScalar);
-            this.leftGain  = LookupTables.COSINE[index];
-            this.rightGain = LookupTables.SINE[index];
-
+            monoSample = this.ampEnvelopeOutputBuffer[i] * this.velocityMult * this.postFilterMult;
             stereoOutputBuffer[i * 2] = monoSample * leftGain;
             stereoOutputBuffer[i * 2 + 1] = monoSample * rightGain;
         }
@@ -368,16 +359,9 @@ public class Voice implements AudioComponent{
         // Stereo Panning & Output
         startTime = System.nanoTime();
         double monoSample = 0.0;
-        double currentPanPosition = 0.0;
-        double panAngle = 0.0;
 
         for (int i = 0; i < blockSize; i++){
-            monoSample = this.ampEnvelopeOutputBuffer[i] * this.velocityMult;
-            currentPanPosition = lfoBuffer[i] * this.panDepth;
-            panAngle = (currentPanPosition + 1.0) * panAngleScalar;
-            int index = (int) (panAngle * angleIndexScalar);
-            this.leftGain  = LookupTables.COSINE[index];
-            this.rightGain = LookupTables.SINE[index];
+            monoSample = this.ampEnvelopeOutputBuffer[i] * this.velocityMult * this.postFilterMult;
             stereoOutputBuffer[i * 2] = monoSample * leftGain;
             stereoOutputBuffer[i * 2 + 1] = monoSample * rightGain;
         }

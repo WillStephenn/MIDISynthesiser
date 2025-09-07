@@ -21,7 +21,7 @@ public class SquareOscillator extends Oscillator{
     public void processBlock(double[] inputBuffer, double[] outputBuffer, int blockSize){
         for (int i = 0; i < blockSize; i++){
             int index = (int)this.phase & phaseMask; // The phaseMask wraps the phase increment to prevent overflow
-            outputBuffer[i] = LookupTables.SAW[index];
+            outputBuffer[i] = LookupTables.SQUARE[index];
             advancePhase();
         }
     }
