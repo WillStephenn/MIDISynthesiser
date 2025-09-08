@@ -280,8 +280,8 @@ public class Voice implements AudioComponent{
 
     /**
      * Processes a block of audio, applying the envelope to each sample.
-     * @param inputBuffer not used. Here for interface consistency.
-     * @param outputBuffer The buffer where the modulated audio will be written.
+     * @param nullBuffer not used. Here for interface consistency.
+     * @param stereoOutputBuffer The buffer where the modulated audio will be written.
      * @param blockSize The number of samples to process.
      */
     @Override

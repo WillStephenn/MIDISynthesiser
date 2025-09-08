@@ -3,7 +3,10 @@ package synth.ui;
 import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.TimeUnit;
 
 import javax.sound.midi.MidiDevice;
 import javax.sound.sampled.AudioFormat;
@@ -35,6 +38,11 @@ public class SynthUIController implements Initializable {
     private SourceDataLine line;
     private MidiDevice midiDevice;
     private Thread audioThread;
+    
+    // Performance logging variables
+    private final Map<String, Long> totalTimings = new HashMap<>();
+    private int blockCount = 0;
+    private long lastReportTime = 0;
     
     // Formatters for parameter readouts
     private final DecimalFormat frequencyFormat = new DecimalFormat("0.0");
@@ -392,14 +400,23 @@ public class SynthUIController implements Initializable {
 
     /**
      * Starts the main audio processing loop on a separate, non-UI thread.
+     * Includes performance instrumentation that reports timing data every 5 seconds.
      */
     private void startAudioProcessingThread() {
         audioThread = new Thread(() -> {
             double[] audioBlock = new double[AudioConstants.BLOCK_SIZE * 2];
             byte[] buffer = new byte[AudioConstants.BLOCK_SIZE * 4];
+            lastReportTime = System.nanoTime();
 
             while (!Thread.currentThread().isInterrupted()) {
-                synth.processBlock(audioBlock);
+                // Use the instrumented version of processBlock
+                Map<String, Long> blockTimings = synth.processBlockInstrumented(audioBlock);
+                
+                // Aggregate timings from this block into the total
+                blockTimings.forEach((key, value) -> totalTimings.merge(key, value, Long::sum));
+                blockCount++;
+
+                // Convert double array to byte array for audio output
                 for (int i = 0; i < AudioConstants.BLOCK_SIZE; i++) {
                     short pcmLeft = (short) (audioBlock[i * 2] * Short.MAX_VALUE);
                     buffer[i * 4] = (byte) (pcmLeft >> 8);
@@ -409,9 +426,31 @@ public class SynthUIController implements Initializable {
                     buffer[i * 4 + 3] = (byte) pcmRight;
                 }
                 line.write(buffer, 0, buffer.length);
+
+                // Print a performance report every 5 seconds
+                long now = System.nanoTime();
+                if (now - lastReportTime > 5_000_000_000L) { // 5 billion nanoseconds = 5 seconds
+                    System.out.println("\n--- Live Performance Report ---");
+                    if (blockCount > 0) {
+                        totalTimings.entrySet().stream()
+                            .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                            .forEach(entry -> {
+                                long avgTimeNanos = entry.getValue() / blockCount;
+                                System.out.printf("%-25s: %d µs%n", entry.getKey(), 
+                                                  TimeUnit.NANOSECONDS.toMicros(avgTimeNanos));
+                            });
+                    }
+                    System.out.println("---------------------------------");
+                    
+                    // Reset for the next reporting interval
+                    totalTimings.clear();
+                    blockCount = 0;
+                    lastReportTime = now;
+                }
             }
         });
         audioThread.setDaemon(true);
+        audioThread.setPriority(Thread.MAX_PRIORITY);
         audioThread.start();
     }
 
