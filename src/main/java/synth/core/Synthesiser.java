@@ -421,19 +421,34 @@ public class Synthesiser{
         // Check if note is already being played and switch it off if it is
         noteOff(pitchMIDI);
 
-        synchronized (voices){
-            for (int i = 0; i < voices.length; i++) {
-                Voice voice = voices[i];
-                if (!voice.isActive()) { // Find first inactive voice
-                    // Apply Patch
-                    voice.setOscillatorPitch(pitchMIDI);
-                    voice.setVelocity(velocity);
-                    updateVoiceParams(voice);
-                    voice.setPanPosition(getPanPosition());
-                    voice.noteOn();
-                    return;
+        synchronized (voices) {
+            Voice targetVoice = null;
+
+            // Find an inactive voice
+            for (Voice voice : voices) {
+                if (!voice.isActive()) {
+                    targetVoice = voice;
+                    break;
                 }
             }
+
+            // If all voices are active, find the oldest one to steal
+            if (targetVoice == null) {
+                targetVoice = voices[0];
+                for (int i = 1; i < voices.length; i++) {
+                    if (voices[i].getNoteOnTime() < targetVoice.getNoteOnTime()) {
+                        targetVoice = voices[i];
+                    }
+                }
+            }
+
+            // Apply Settings to Target Voice
+            targetVoice.setOscillatorPitch(pitchMIDI);
+            targetVoice.setVelocity(velocity);
+            updateVoiceParams(targetVoice);
+            targetVoice.setPanPosition(getPanPosition());
+            targetVoice.setNoteOnTime(System.nanoTime());
+            targetVoice.noteOn();
         }
     }
 

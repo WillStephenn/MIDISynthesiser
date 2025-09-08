@@ -57,7 +57,9 @@ public class Voice implements AudioComponent{
     private final double[] filterOutputBuffer;
     private final double[] filterEnvelopeOutputBuffer;
     private final double[] ampEnvelopeOutputBuffer;
-    private final double[] stereoOutputBuffer;
+
+    // Trackers
+    private long noteOnTime;
 
     /**
      * Constructs a new Voice with the specified waveform, pitch, sample rate, and pan position.
@@ -65,7 +67,6 @@ public class Voice implements AudioComponent{
      * @param waveform       The oscillator waveform.
      * @param pitchFrequency The initial pitch frequency of the oscillator. Must not be negative.
      * @param sampleRate     The audio sample rate. Must be positive.
-     * @param panPosition    The initial stereo pan position (-1.0 to 1.0).
      */
     public Voice (Synthesiser.Waveform waveform, double pitchFrequency, double sampleRate, int blockSize){
         if (pitchFrequency < 0) {
@@ -107,7 +108,6 @@ public class Voice implements AudioComponent{
         this.filterOutputBuffer = new double[blockSize];
         this.filterEnvelopeOutputBuffer  = new double[blockSize];
         this.ampEnvelopeOutputBuffer  = new double[blockSize];
-        this.stereoOutputBuffer = new double[blockSize * 2];
     }
 
     // Facade Setter Methods
@@ -252,6 +252,14 @@ public class Voice implements AudioComponent{
     public void noteOff(){
         ampEnvelope.noteOff();
         filterEnvelope.noteOff();
+    }
+
+    public void setNoteOnTime(long time) {
+        this.noteOnTime = time;
+    }
+
+    public long getNoteOnTime() {
+        return this.noteOnTime;
     }
 
     /**
