@@ -94,7 +94,7 @@ public class Synthesiser{
 
         // Default Synth Patch
         loadPatch( // Applies default patch and populates the voice bank
-                Waveform.SINE, // Synth Waveform
+                Waveform.SQUARE, // Synth Waveform
                 1000,     // filterCutoff
                 3,       // filterResonance
                 2000.0,  // filterModRange (Hz)

@@ -13,9 +13,9 @@ public class PerformanceTest {
         // Setup
         int numberOfBlocksToProcess = 2000;
         Synthesiser synth = new Synthesiser(
-                AudioConstants.NUMBER_OF_VOICES, //
-                AudioConstants.SAMPLE_RATE,     //
-                AudioConstants.BLOCK_SIZE);     //
+                AudioConstants.NUMBER_OF_VOICES,
+                AudioConstants.SAMPLE_RATE,
+                AudioConstants.BLOCK_SIZE);
 
         double[] audioBlock = new double[AudioConstants.BLOCK_SIZE * 2];
         Map<String, Long> totalTimings = new HashMap<>();
