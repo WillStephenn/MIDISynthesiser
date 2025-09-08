@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.text.Font?>
+
+<GridPane hgap="10.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="800.0" vgap="10.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="synth.ui.SynthUIController">
+    <columnConstraints>
+        <ColumnConstraints hgrow="SOMETIMES" maxWidth="150.0" minWidth="10.0" prefWidth="120.0" />
+        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+        <ColumnConstraints hgrow="SOMETIMES" maxWidth="150.0" minWidth="10.0" prefWidth="120.0" />
+        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+    </columnConstraints>
+    <rowConstraints>
+        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+    </rowConstraints>
+    <children>
+        <Label text="DEVICES" GridPane.columnSpan="4">
+            <font><Font name="System Bold" size="18.0" /></font>
+        </Label>
+        <Label text="MIDI Input" GridPane.rowIndex="1" />
+        <ChoiceBox fx:id="midiDeviceChoiceBox" prefWidth="250.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+        <Label text="Audio Output" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+        <ChoiceBox fx:id="audioDeviceChoiceBox" prefWidth="250.0" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+
+        <Label text="OSCILLATOR &amp; LFO" GridPane.columnSpan="2" GridPane.rowIndex="2">
+            <font><Font name="System Bold" size="18.0" /></font>
+        </Label>
+        <Label text="Waveform" GridPane.rowIndex="3" />
+        <ChoiceBox fx:id="waveformChoiceBox" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+        <Label text="LFO Wave" GridPane.columnIndex="2" GridPane.rowIndex="3" />
+        <ChoiceBox fx:id="lfoWaveformChoiceBox" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="3" />
+        <Label text="LFO Frequency" GridPane.rowIndex="4" />
+        <Slider fx:id="lfoFrequencySlider" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+        <Label text="FILTER" GridPane.columnSpan="2" GridPane.rowIndex="5">
+            <font><Font name="System Bold" size="18.0" /></font>
+        </Label>
+        <Label text="Cutoff" GridPane.rowIndex="6" />
+        <Slider fx:id="filterCutoffSlider" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+        <Label text="Resonance" GridPane.columnIndex="2" GridPane.rowIndex="6" />
+        <Slider fx:id="filterResonanceSlider" GridPane.columnIndex="3" GridPane.rowIndex="6" />
+        <Label text="Mod Range" GridPane.rowIndex="7" />
+        <Slider fx:id="filterModRangeSlider" GridPane.columnIndex="1" GridPane.rowIndex="7" />
+
+        <Label text="AMP ENVELOPE" GridPane.columnIndex="2" GridPane.rowIndex="2">
+            <font><Font name="System Bold" size="18.0" /></font>
+        </Label>
+        <Label text="Attack" GridPane.columnIndex="2" GridPane.rowIndex="4" />
+        <Slider fx:id="ampAttackSlider" GridPane.columnIndex="3" GridPane.rowIndex="4" />
+        <Label text="Decay" GridPane.columnIndex="2" GridPane.rowIndex="5" />
+        <Slider fx:id="ampDecaySlider" GridPane.columnIndex="3" GridPane.rowIndex="5" />
+        <Label text="Sustain" GridPane.columnIndex="2" GridPane.rowIndex="7" />
+        <Slider fx:id="ampSustainSlider" GridPane.columnIndex="3" GridPane.rowIndex="7" />
+        <Label text="Release" GridPane.columnIndex="2" GridPane.rowIndex="8" />
+        <Slider fx:id="ampReleaseSlider" GridPane.columnIndex="3" GridPane.rowIndex="8" />
+    </children>
+    <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+    </padding>
+</GridPane>
