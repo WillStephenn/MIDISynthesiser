@@ -1,4 +1,4 @@
-package synth.MIDI;
+package synth.midi;
 
 
 import java.io.File;

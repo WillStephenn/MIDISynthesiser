@@ -1,28 +1,33 @@
 package synth.ui;
 
-import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
-import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.Slider;
-import synth.MIDI.MidiDeviceConnector;
-import synth.core.Synthesiser;
-import synth.utils.AudioConstants;
-import synth.utils.AudioDeviceConnector;
+import java.net.URL;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.ResourceBundle;
 
 import javax.sound.midi.MidiDevice;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.ResourceBundle;
+
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.Slider;
+import synth.midi.MidiDeviceConnector;
+import synth.core.Synthesiser;
+import synth.utils.AudioConstants;
+import synth.utils.AudioDeviceConnector;
 
 /**
  * Controller for the main synthesiser user interface.
  * Manages the initialisation of the synth, audio/MIDI devices,
  * and binds UI controls to the synthesiser's parameters.
+ * 
+ * June's Logue - Modern/Vintage Teracotta Theme
  */
 public class SynthUIController implements Initializable {
 
@@ -30,20 +35,65 @@ public class SynthUIController implements Initializable {
     private SourceDataLine line;
     private MidiDevice midiDevice;
     private Thread audioThread;
+    
+    // Formatters for parameter readouts
+    private final DecimalFormat frequencyFormat = new DecimalFormat("0.0");
+    private final DecimalFormat timeFormat = new DecimalFormat("0.000");
+    private final DecimalFormat levelFormat = new DecimalFormat("0.00");
+    private final DecimalFormat integerFormat = new DecimalFormat("0");
+    private final DecimalFormat decibelsFormat = new DecimalFormat("0.0");
+    private final DecimalFormat percentFormat = new DecimalFormat("0");
 
-    // FXML UI Components
+    // FXML UI Components - Device Selection
     @FXML private ChoiceBox<String> midiDeviceChoiceBox;
     @FXML private ChoiceBox<String> audioDeviceChoiceBox;
+    
+    // FXML UI Components - Oscillator & LFO
     @FXML private ChoiceBox<Synthesiser.Waveform> waveformChoiceBox;
     @FXML private ChoiceBox<Synthesiser.Waveform> lfoWaveformChoiceBox;
     @FXML private Slider lfoFrequencySlider;
+    @FXML private Label lfoFrequencyLabel;
+    
+    // FXML UI Components - Filter
     @FXML private Slider filterCutoffSlider;
+    @FXML private Label filterCutoffLabel;
     @FXML private Slider filterResonanceSlider;
+    @FXML private Label filterResonanceLabel;
     @FXML private Slider filterModRangeSlider;
+    @FXML private Label filterModRangeLabel;
+    
+    // FXML UI Components - Amp Envelope
     @FXML private Slider ampAttackSlider;
+    @FXML private Label ampAttackLabel;
     @FXML private Slider ampDecaySlider;
+    @FXML private Label ampDecayLabel;
     @FXML private Slider ampSustainSlider;
+    @FXML private Label ampSustainLabel;
     @FXML private Slider ampReleaseSlider;
+    @FXML private Label ampReleaseLabel;
+    
+    // FXML UI Components - Filter Envelope
+    @FXML private Slider filterAttackSlider;
+    @FXML private Label filterAttackLabel;
+    @FXML private Slider filterDecaySlider;
+    @FXML private Label filterDecayLabel;
+    @FXML private Slider filterSustainSlider;
+    @FXML private Label filterSustainLabel;
+    @FXML private Slider filterReleaseSlider;
+    @FXML private Label filterReleaseLabel;
+    
+    // FXML UI Components - Global Controls
+    @FXML private Slider masterVolumeSlider;
+    @FXML private Label masterVolumeLabel;
+    @FXML private Slider panDepthSlider;
+    @FXML private Label panDepthLabel;
+    @FXML private Slider preFilterGainSlider;
+    @FXML private Label preFilterGainLabel;
+    @FXML private Slider postFilterGainSlider;
+    @FXML private Label postFilterGainLabel;
+    
+    // Track master volume since synth doesn't have a getter
+    private double currentMasterVolume = 1.0;
 
     /**
      * Called by JavaFX to initialise the controller after its root element has been processed.
@@ -60,6 +110,7 @@ public class SynthUIController implements Initializable {
 
         setupDeviceSelectors();
         setupControls();
+        syncUIWithSynthSettings();
     }
 
     /**
@@ -94,29 +145,213 @@ public class SynthUIController implements Initializable {
     }
 
     /**
-     * Binds all UI controls (sliders, choice boxes) to their corresponding synthesiser parameters.
+     * Binds all UI controls (sliders, choice boxes) to their corresponding synthesiser parameters
+     * and sets up real-time parameter readouts.
      */
     private void setupControls() {
+        // Oscillator Controls
         waveformChoiceBox.setItems(FXCollections.observableArrayList(Synthesiser.Waveform.values()));
-        waveformChoiceBox.setValue(synth.getWaveform());
         waveformChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
             if (n != null) synth.setWaveform(n);
         });
 
+        // LFO Controls
         lfoWaveformChoiceBox.setItems(FXCollections.observableArrayList(Synthesiser.Waveform.values()));
-        lfoWaveformChoiceBox.setValue(synth.getLFOWaveform());
         lfoWaveformChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
             if (n != null) synth.setLFOWaveform(n);
         });
 
-        lfoFrequencySlider.valueProperty().addListener((obs, o, n) -> synth.setLFOFrequency(n.doubleValue()));
-        filterCutoffSlider.valueProperty().addListener((obs, o, n) -> synth.setFilterCutoff(n.doubleValue()));
-        filterResonanceSlider.valueProperty().addListener((obs, o, n) -> synth.setFilterResonance(n.doubleValue()));
-        filterModRangeSlider.valueProperty().addListener((obs, o, n) -> synth.setFilterModRange(n.doubleValue()));
-        ampAttackSlider.valueProperty().addListener((obs, o, n) -> synth.setAmpAttackTime(n.doubleValue()));
-        ampDecaySlider.valueProperty().addListener((obs, o, n) -> synth.setAmpDecayTime(n.doubleValue()));
-        ampSustainSlider.valueProperty().addListener((obs, o, n) -> synth.setAmpSustainLevel(n.doubleValue()));
-        ampReleaseSlider.valueProperty().addListener((obs, o, n) -> synth.setAmpReleaseTime(n.doubleValue()));
+        setupLFOControls();
+        setupFilterControls();
+        setupAmpEnvelopeControls();
+        setupFilterEnvelopeControls();
+        setupGlobalControls();
+    }
+    
+    /**
+     * Sets up LFO frequency controls with real-time readouts.
+     */
+    private void setupLFOControls() {
+        lfoFrequencySlider.valueProperty().addListener((obs, o, n) -> {
+            double freq = n.doubleValue();
+            synth.setLFOFrequency(freq);
+            lfoFrequencyLabel.setText(frequencyFormat.format(freq) + " Hz");
+        });
+    }
+    
+    /**
+     * Sets up filter controls with real-time readouts.
+     */
+    private void setupFilterControls() {
+        filterCutoffSlider.valueProperty().addListener((obs, o, n) -> {
+            double cutoff = n.doubleValue();
+            synth.setFilterCutoff(cutoff);
+            filterCutoffLabel.setText(integerFormat.format(cutoff) + " Hz");
+        });
+        
+        filterResonanceSlider.valueProperty().addListener((obs, o, n) -> {
+            double resonance = n.doubleValue();
+            synth.setFilterResonance(resonance);
+            filterResonanceLabel.setText(frequencyFormat.format(resonance));
+        });
+        
+        filterModRangeSlider.valueProperty().addListener((obs, o, n) -> {
+            double modRange = n.doubleValue();
+            synth.setFilterModRange(modRange);
+            filterModRangeLabel.setText(integerFormat.format(modRange) + " Hz");
+        });
+    }
+    
+    /**
+     * Sets up amplitude envelope controls with real-time readouts.
+     */
+    private void setupAmpEnvelopeControls() {
+        ampAttackSlider.valueProperty().addListener((obs, o, n) -> {
+            double attack = n.doubleValue();
+            synth.setAmpAttackTime(attack);
+            ampAttackLabel.setText(timeFormat.format(attack) + " s");
+        });
+        
+        ampDecaySlider.valueProperty().addListener((obs, o, n) -> {
+            double decay = n.doubleValue();
+            synth.setAmpDecayTime(decay);
+            ampDecayLabel.setText(timeFormat.format(decay) + " s");
+        });
+        
+        ampSustainSlider.valueProperty().addListener((obs, o, n) -> {
+            double sustain = n.doubleValue();
+            synth.setAmpSustainLevel(sustain);
+            ampSustainLabel.setText(levelFormat.format(sustain));
+        });
+        
+        ampReleaseSlider.valueProperty().addListener((obs, o, n) -> {
+            double release = n.doubleValue();
+            synth.setAmpReleaseTime(release);
+            ampReleaseLabel.setText(timeFormat.format(release) + " s");
+        });
+    }
+    
+    /**
+     * Sets up filter envelope controls with real-time readouts.
+     */
+    private void setupFilterEnvelopeControls() {
+        filterAttackSlider.valueProperty().addListener((obs, o, n) -> {
+            double attack = n.doubleValue();
+            synth.setFilterAttackTime(attack);
+            filterAttackLabel.setText(timeFormat.format(attack) + " s");
+        });
+        
+        filterDecaySlider.valueProperty().addListener((obs, o, n) -> {
+            double decay = n.doubleValue();
+            synth.setFilterDecayTime(decay);
+            filterDecayLabel.setText(timeFormat.format(decay) + " s");
+        });
+        
+        filterSustainSlider.valueProperty().addListener((obs, o, n) -> {
+            double sustain = n.doubleValue();
+            synth.setFilterSustainLevel(sustain);
+            filterSustainLabel.setText(levelFormat.format(sustain));
+        });
+        
+        filterReleaseSlider.valueProperty().addListener((obs, o, n) -> {
+            double release = n.doubleValue();
+            synth.setFilterReleaseTime(release);
+            filterReleaseLabel.setText(timeFormat.format(release) + " s");
+        });
+    }
+    
+    /**
+     * Sets up global controls with real-time readouts.
+     */
+    private void setupGlobalControls() {
+        masterVolumeSlider.valueProperty().addListener((obs, o, n) -> {
+            double volume = n.doubleValue();
+            currentMasterVolume = volume;
+            synth.setMasterVolume(volume);
+            masterVolumeLabel.setText(percentFormat.format(volume * 100) + "%");
+        });
+        
+        panDepthSlider.valueProperty().addListener((obs, o, n) -> {
+            double panDepth = n.doubleValue();
+            synth.setPanDepth(panDepth);
+            panDepthLabel.setText(levelFormat.format(panDepth));
+        });
+        
+        preFilterGainSlider.valueProperty().addListener((obs, o, n) -> {
+            double gain = n.doubleValue();
+            synth.setPreFilterGainDB(gain);
+            preFilterGainLabel.setText(decibelsFormat.format(gain) + " dB");
+        });
+        
+        postFilterGainSlider.valueProperty().addListener((obs, o, n) -> {
+            double gain = n.doubleValue();
+            synth.setPostFilterGainDB(gain);
+            postFilterGainLabel.setText(decibelsFormat.format(gain) + " dB");
+        });
+    }
+
+    /**
+     * Syncs the UI controls with the current synthesiser settings.
+     * This pulls the current patch values and updates all UI elements accordingly.
+     */
+    private void syncUIWithSynthSettings() {
+        // Oscillator settings
+        waveformChoiceBox.setValue(synth.getWaveform());
+        
+        // LFO settings
+        lfoWaveformChoiceBox.setValue(synth.getLFOWaveform());
+        lfoFrequencySlider.setValue(synth.getLFOFrequency());
+        
+        // Filter settings
+        filterCutoffSlider.setValue(synth.getFilterCutoff());
+        filterResonanceSlider.setValue(synth.getFilterResonance());
+        filterModRangeSlider.setValue(synth.getFilterModRange());
+        
+        // Amp Envelope settings
+        ampAttackSlider.setValue(synth.getAmpAttackTime());
+        ampDecaySlider.setValue(synth.getAmpDecayTime());
+        ampSustainSlider.setValue(synth.getAmpSustainLevel());
+        ampReleaseSlider.setValue(synth.getAmpReleaseTime());
+        
+        // Filter Envelope settings
+        filterAttackSlider.setValue(synth.getFilterAttackTime());
+        filterDecaySlider.setValue(synth.getFilterDecayTime());
+        filterSustainSlider.setValue(synth.getFilterSustainLevel());
+        filterReleaseSlider.setValue(synth.getFilterReleaseTime());
+        
+        // Global Control settings
+        masterVolumeSlider.setValue(currentMasterVolume);
+        panDepthSlider.setValue(synth.getPanDepth());
+        preFilterGainSlider.setValue(synth.getPreFilterGainDB());
+        postFilterGainSlider.setValue(synth.getPostFilterGainDB());
+        
+        // Update all readout labels
+        updateAllReadouts();
+    }
+    
+    /**
+     * Updates all parameter readout labels with current values.
+     */
+    private void updateAllReadouts() {
+        lfoFrequencyLabel.setText(frequencyFormat.format(lfoFrequencySlider.getValue()) + " Hz");
+        filterCutoffLabel.setText(integerFormat.format(filterCutoffSlider.getValue()) + " Hz");
+        filterResonanceLabel.setText(frequencyFormat.format(filterResonanceSlider.getValue()));
+        filterModRangeLabel.setText(integerFormat.format(filterModRangeSlider.getValue()) + " Hz");
+        
+        ampAttackLabel.setText(timeFormat.format(ampAttackSlider.getValue()) + " s");
+        ampDecayLabel.setText(timeFormat.format(ampDecaySlider.getValue()) + " s");
+        ampSustainLabel.setText(levelFormat.format(ampSustainSlider.getValue()));
+        ampReleaseLabel.setText(timeFormat.format(ampReleaseSlider.getValue()) + " s");
+        
+        filterAttackLabel.setText(timeFormat.format(filterAttackSlider.getValue()) + " s");
+        filterDecayLabel.setText(timeFormat.format(filterDecaySlider.getValue()) + " s");
+        filterSustainLabel.setText(levelFormat.format(filterSustainSlider.getValue()));
+        filterReleaseLabel.setText(timeFormat.format(filterReleaseSlider.getValue()) + " s");
+        
+        masterVolumeLabel.setText(percentFormat.format(masterVolumeSlider.getValue() * 100) + "%");
+        panDepthLabel.setText(levelFormat.format(panDepthSlider.getValue()));
+        preFilterGainLabel.setText(decibelsFormat.format(preFilterGainSlider.getValue()) + " dB");
+        postFilterGainLabel.setText(decibelsFormat.format(postFilterGainSlider.getValue()) + " dB");
     }
 
     /**

@@ -4,68 +4,247 @@
 <?import javafx.scene.control.ChoiceBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Slider?>
-<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-<GridPane hgap="10.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="800.0" vgap="10.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="synth.ui.SynthUIController">
-    <columnConstraints>
-        <ColumnConstraints hgrow="SOMETIMES" maxWidth="150.0" minWidth="10.0" prefWidth="120.0" />
-        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-        <ColumnConstraints hgrow="SOMETIMES" maxWidth="150.0" minWidth="10.0" prefWidth="120.0" />
-        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-    </columnConstraints>
-    <rowConstraints>
-        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-    </rowConstraints>
-    <children>
-        <Label text="DEVICES" GridPane.columnSpan="4">
-            <font><Font name="System Bold" size="18.0" /></font>
-        </Label>
-        <Label text="MIDI Input" GridPane.rowIndex="1" />
-        <ChoiceBox fx:id="midiDeviceChoiceBox" prefWidth="250.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-        <Label text="Audio Output" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-        <ChoiceBox fx:id="audioDeviceChoiceBox" prefWidth="250.0" GridPane.columnIndex="3" GridPane.rowIndex="1" />
-
-        <Label text="OSCILLATOR &amp; LFO" GridPane.columnSpan="2" GridPane.rowIndex="2">
-            <font><Font name="System Bold" size="18.0" /></font>
-        </Label>
-        <Label text="Waveform" GridPane.rowIndex="3" />
-        <ChoiceBox fx:id="waveformChoiceBox" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-        <Label text="LFO Wave" GridPane.columnIndex="2" GridPane.rowIndex="3" />
-        <ChoiceBox fx:id="lfoWaveformChoiceBox" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="3" />
-        <Label text="LFO Frequency" GridPane.rowIndex="4" />
-        <Slider fx:id="lfoFrequencySlider" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-
-        <Label text="FILTER" GridPane.columnSpan="2" GridPane.rowIndex="5">
-            <font><Font name="System Bold" size="18.0" /></font>
-        </Label>
-        <Label text="Cutoff" GridPane.rowIndex="6" />
-        <Slider fx:id="filterCutoffSlider" GridPane.columnIndex="1" GridPane.rowIndex="6" />
-        <Label text="Resonance" GridPane.columnIndex="2" GridPane.rowIndex="6" />
-        <Slider fx:id="filterResonanceSlider" GridPane.columnIndex="3" GridPane.rowIndex="6" />
-        <Label text="Mod Range" GridPane.rowIndex="7" />
-        <Slider fx:id="filterModRangeSlider" GridPane.columnIndex="1" GridPane.rowIndex="7" />
-
-        <Label text="AMP ENVELOPE" GridPane.columnIndex="2" GridPane.rowIndex="2">
-            <font><Font name="System Bold" size="18.0" /></font>
-        </Label>
-        <Label text="Attack" GridPane.columnIndex="2" GridPane.rowIndex="4" />
-        <Slider fx:id="ampAttackSlider" GridPane.columnIndex="3" GridPane.rowIndex="4" />
-        <Label text="Decay" GridPane.columnIndex="2" GridPane.rowIndex="5" />
-        <Slider fx:id="ampDecaySlider" GridPane.columnIndex="3" GridPane.rowIndex="5" />
-        <Label text="Sustain" GridPane.columnIndex="2" GridPane.rowIndex="7" />
-        <Slider fx:id="ampSustainSlider" GridPane.columnIndex="3" GridPane.rowIndex="7" />
-        <Label text="Release" GridPane.columnIndex="2" GridPane.rowIndex="8" />
-        <Slider fx:id="ampReleaseSlider" GridPane.columnIndex="3" GridPane.rowIndex="8" />
-    </children>
-    <padding>
-        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-    </padding>
-</GridPane>
+<BorderPane prefHeight="700.0" prefWidth="1200.0" style="-fx-background-color: #0A0908;" stylesheets="@junes_logue.css" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="synth.ui.SynthUIController">
+    
+    <!-- Header -->
+    <top>
+        <VBox styleClass="header-box">
+            <padding>
+                <Insets bottom="20.0" left="30.0" right="30.0" top="20.0" />
+            </padding>
+            <Label text="JUNE'S LOGUE" styleClass="title-label" />
+            <Label text="ANALOGUE SYNTHESISER" styleClass="subtitle-label" />
+            
+            <!-- Device Selection Row -->
+            <HBox spacing="40.0" style="-fx-alignment: center-left; -fx-padding: 20 0 0 0;">
+                <VBox spacing="8.0">
+                    <Label text="MIDI INPUT" styleClass="parameter-label" style="-fx-text-fill: #FF9F1C;" />
+                    <ChoiceBox fx:id="midiDeviceChoiceBox" prefWidth="280.0" />
+                </VBox>
+                <VBox spacing="8.0">
+                    <Label text="AUDIO OUTPUT" styleClass="parameter-label" style="-fx-text-fill: #FF9F1C;" />
+                    <ChoiceBox fx:id="audioDeviceChoiceBox" prefWidth="280.0" />
+                </VBox>
+            </HBox>
+        </VBox>
+    </top>
+    
+    <!-- Main Content -->
+    <center>
+        <HBox spacing="0.0" style="-fx-background-color: #0A0908;">
+            
+            <!-- Oscillator & LFO Section -->
+            <VBox prefWidth="300.0" styleClass="section-box">
+                <Label text="OSCILLATOR" styleClass="section-header" />
+                <Separator style="-fx-background-color: #BA5624; -fx-pref-height: 2; -fx-opacity: 0.6;" />
+                <VBox.margin><Insets bottom="15.0" /></VBox.margin>
+                
+                <VBox spacing="20.0">
+                    <VBox spacing="8.0">
+                        <Label text="WAVEFORM" styleClass="parameter-label" />
+                        <ChoiceBox fx:id="waveformChoiceBox" prefWidth="240.0" />
+                    </VBox>
+                </VBox>
+                
+                <Separator style="-fx-background-color: #BA5624; -fx-pref-height: 1; -fx-opacity: 0.4;" />
+                <VBox.margin><Insets top="30.0" bottom="15.0" /></VBox.margin>
+                
+                <Label text="LFO" styleClass="section-header" />
+                
+                <VBox spacing="20.0">
+                    <VBox spacing="8.0">
+                        <Label text="LFO WAVEFORM" styleClass="parameter-label" />
+                        <ChoiceBox fx:id="lfoWaveformChoiceBox" prefWidth="240.0" />
+                    </VBox>
+                    
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="LFO FREQUENCY" styleClass="parameter-label" />
+                            <Label fx:id="lfoFrequencyLabel" text="1.0 Hz" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="lfoFrequencySlider" min="0.1" max="20.0" value="1.0" prefWidth="240.0" styleClass="oscillator-slider" />
+                    </VBox>
+                </VBox>
+            </VBox>
+            
+            <!-- Filter Section -->
+            <VBox prefWidth="300.0" styleClass="filter-section-box">
+                <Label text="FILTER" styleClass="section-header" />
+                <Separator style="-fx-background-color: #BA5624; -fx-pref-height: 2; -fx-opacity: 0.6;" />
+                <VBox.margin><Insets bottom="15.0" /></VBox.margin>
+                
+                <VBox spacing="20.0">
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="CUTOFF" styleClass="parameter-label" />
+                            <Label fx:id="filterCutoffLabel" text="1000 Hz" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="filterCutoffSlider" min="20.0" max="20000.0" value="1000.0" prefWidth="240.0" styleClass="filter-slider" />
+                    </VBox>
+                    
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="RESONANCE" styleClass="parameter-label" />
+                            <Label fx:id="filterResonanceLabel" text="3.0" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="filterResonanceSlider" min="1.0" max="20.0" value="3.0" prefWidth="240.0" styleClass="filter-slider" />
+                    </VBox>
+                    
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="MOD RANGE" styleClass="parameter-label" />
+                            <Label fx:id="filterModRangeLabel" text="2000 Hz" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="filterModRangeSlider" min="0.0" max="10000.0" value="2000.0" prefWidth="240.0" styleClass="filter-slider" />
+                    </VBox>
+                </VBox>
+            </VBox>
+            
+            <!-- Envelope Section -->
+            <VBox prefWidth="300.0" styleClass="section-box">
+                <Label text="AMP ENVELOPE" styleClass="section-header" />
+                <Separator style="-fx-background-color: #BA5624; -fx-pref-height: 2; -fx-opacity: 0.6;" />
+                <VBox.margin><Insets bottom="15.0" /></VBox.margin>
+                
+                <VBox spacing="20.0">
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="ATTACK" styleClass="parameter-label" />
+                            <Label fx:id="ampAttackLabel" text="0.005 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="ampAttackSlider" min="0.001" max="5.0" value="0.005" prefWidth="240.0" styleClass="envelope-slider" />
+                    </VBox>
+                    
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="DECAY" styleClass="parameter-label" />
+                            <Label fx:id="ampDecayLabel" text="0.1 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="ampDecaySlider" min="0.001" max="5.0" value="0.1" prefWidth="240.0" styleClass="envelope-slider" />
+                    </VBox>
+                    
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="SUSTAIN" styleClass="parameter-label" />
+                            <Label fx:id="ampSustainLabel" text="0.4" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="ampSustainSlider" min="0.0" max="1.0" value="0.4" prefWidth="240.0" styleClass="envelope-slider" />
+                    </VBox>
+                    
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="RELEASE" styleClass="parameter-label" />
+                            <Label fx:id="ampReleaseLabel" text="0.4 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="ampReleaseSlider" min="0.001" max="5.0" value="0.4" prefWidth="240.0" styleClass="envelope-slider" />
+                    </VBox>
+                </VBox>
+            </VBox>
+            
+            <!-- Filter Envelope Section -->
+            <VBox prefWidth="300.0" styleClass="filter-section-box">
+                <Label text="FILTER ENVELOPE" styleClass="section-header" />
+                <Separator style="-fx-background-color: #BA5624; -fx-pref-height: 2; -fx-opacity: 0.6;" />
+                <VBox.margin><Insets bottom="15.0" /></VBox.margin>
+                
+                <VBox spacing="20.0">
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="ATTACK" styleClass="parameter-label" />
+                            <Label fx:id="filterAttackLabel" text="0.01 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="filterAttackSlider" min="0.001" max="5.0" value="0.01" prefWidth="240.0" styleClass="filter-slider" />
+                    </VBox>
+                    
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="DECAY" styleClass="parameter-label" />
+                            <Label fx:id="filterDecayLabel" text="0.3 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="filterDecaySlider" min="0.001" max="5.0" value="0.3" prefWidth="240.0" styleClass="filter-slider" />
+                    </VBox>
+                    
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="SUSTAIN" styleClass="parameter-label" />
+                            <Label fx:id="filterSustainLabel" text="0.5" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="filterSustainSlider" min="0.0" max="1.0" value="0.5" prefWidth="240.0" styleClass="filter-slider" />
+                    </VBox>
+                    
+                    <VBox spacing="8.0">
+                        <HBox style="-fx-alignment: center-left;">
+                            <Label text="RELEASE" styleClass="parameter-label" />
+                            <Label fx:id="filterReleaseLabel" text="0.1 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                        </HBox>
+                        <Slider fx:id="filterReleaseSlider" min="0.001" max="5.0" value="0.1" prefWidth="240.0" styleClass="filter-slider" />
+                    </VBox>
+                </VBox>
+            </VBox>
+            
+        </HBox>
+    </center>
+    
+    <!-- Global Controls Footer -->
+    <bottom>
+        <VBox styleClass="header-box" style="-fx-border-width: 3 0 0 0;">
+            <padding>
+                <Insets bottom="20.0" left="30.0" right="30.0" top="20.0" />
+            </padding>
+            
+            <Label text="GLOBAL CONTROLS" styleClass="section-header" style="-fx-alignment: center; -fx-font-size: 16px;" />
+            <Separator style="-fx-background-color: #BA5624; -fx-pref-height: 2; -fx-opacity: 0.6;" />
+            <VBox.margin><Insets bottom="15.0" /></VBox.margin>
+            
+            <!-- Global Controls Row -->
+            <HBox spacing="60.0" style="-fx-alignment: center;">
+                <!-- Master Volume -->
+                <VBox spacing="8.0" prefWidth="200.0">
+                    <HBox style="-fx-alignment: center-left;">
+                        <Label text="MASTER VOLUME" styleClass="parameter-label" />
+                        <Label fx:id="masterVolumeLabel" text="100%" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                    </HBox>
+                    <Slider fx:id="masterVolumeSlider" min="0.0" max="1.0" value="1.0" prefWidth="200.0" styleClass="global-slider" />
+                </VBox>
+                
+                <!-- Pan Depth -->
+                <VBox spacing="8.0" prefWidth="200.0">
+                    <HBox style="-fx-alignment: center-left;">
+                        <Label text="PAN DEPTH" styleClass="parameter-label" />
+                        <Label fx:id="panDepthLabel" text="0.4" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                    </HBox>
+                    <Slider fx:id="panDepthSlider" min="0.0" max="1.0" value="0.4" prefWidth="200.0" styleClass="global-slider" />
+                </VBox>
+                
+                <!-- Pre-Filter Gain -->
+                <VBox spacing="8.0" prefWidth="200.0">
+                    <HBox style="-fx-alignment: center-left;">
+                        <Label text="PRE-FILTER GAIN" styleClass="parameter-label" />
+                        <Label fx:id="preFilterGainLabel" text="-3.0 dB" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                    </HBox>
+                    <Slider fx:id="preFilterGainSlider" min="-20.0" max="20.0" value="-3.0" prefWidth="200.0" styleClass="global-slider" />
+                </VBox>
+                
+                <!-- Post-Filter Gain -->
+                <VBox spacing="8.0" prefWidth="200.0">
+                    <HBox style="-fx-alignment: center-left;">
+                        <Label text="POST-FILTER GAIN" styleClass="parameter-label" />
+                        <Label fx:id="postFilterGainLabel" text="0.0 dB" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
+                    </HBox>
+                    <Slider fx:id="postFilterGainSlider" min="-20.0" max="20.0" value="0.0" prefWidth="200.0" styleClass="global-slider" />
+                </VBox>
+            </HBox>
+        </VBox>
+    </bottom>
+    
+</BorderPane>

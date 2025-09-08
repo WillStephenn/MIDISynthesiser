@@ -1,4 +1,4 @@
-package synth.MIDI;
+package synth.midi;
 
 import synth.core.Synthesiser;
 import javax.sound.midi.*;
