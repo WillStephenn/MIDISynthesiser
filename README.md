@@ -36,7 +36,7 @@ To achieve this, several optimisation strategies were employed:
 
 ## Limitations and Reflections
 
-While this project was a success as a learning exercise, building a real-time synthesiser in Java highlighted the inherent challenges of the platform for this type of application. The Java Virtual Machine (JVM) and its automatic memory management, while advantageous for many applications, are not ideally suited for the demands of low-latency audio processing.
+While this project was a success as a learning exercise, building a real-time synthesiser in Java highlighted the inherent challenges of the platform for this type of application. The Java Virtual Machine (JVM) with its automatic memory management and just-in-time compilation is not ideally suited for the demands of low-latency audio processing.
 
 The non-deterministic nature of the garbage collector, even with careful coding practices, remains a potential source of instability. A language like **C++**, which offers manual memory management and closer-to-the-metal control, would be a more conventional and robust choice for a production-grade audio application. This project, therefore, stands not as a template for production software, but as a testament to the educational value of pushing a language to its limits to better understand the fundamentals of software engineering and digital audio.
 
