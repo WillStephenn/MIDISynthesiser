@@ -120,7 +120,7 @@ public class Synthesiser{
      * Updates the waveform for the Low-Frequency Oscillator (LFO).
      * @param LFOWaveForm The new waveform for the LFO.
      */
-    public void updateLFOWaveform(Waveform LFOWaveForm){
+    public void setLFOWaveform(Waveform LFOWaveForm){
         if(this.LFOWaveForm != LFOWaveForm){
             this.LFOWaveForm = LFOWaveForm;
             // Switch to the pre-allocated oscillator
@@ -140,7 +140,7 @@ public class Synthesiser{
      * This will clear and repopulate the voice bank with new oscillators.
      * @param waveform The new waveform to use.
      */
-    public void updateWaveForm(Waveform waveform){
+    public void setOscillatorWaveform(Waveform waveform){
         if (this.waveform != waveform){
             this.waveform = waveform;
             for (int i = 0; i < voices.length; i++){
@@ -149,15 +149,13 @@ public class Synthesiser{
         }
     }
 
-    public void updateVoiceParams(Voice voice){
+    public void setVoiceParams(Voice voice){
         voice.setAmpEnvelope(this.ampAttackTime, this.ampDecayTime, this.ampSustainLevel, this.ampReleaseTime);
         voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
         voice.setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModRange);
         voice.setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
         voice.setPanDepth(this.panDepth);
     }
-
-    // --- Real-time Parameter Control Setter Methods ---
 
     public void setFilterCutoff(double cutoff) {
         this.filterCutoff = Math.max(20.0, Math.min(20000.0, cutoff)); // Clamp to audible range
@@ -259,31 +257,18 @@ public class Synthesiser{
         this.panDepth = Math.max(0.0, Math.min(1.0, depth));
     }
 
-    public void setWaveform(Waveform newWaveform) {
-        if (this.waveform != newWaveform) {
-            updateWaveForm(newWaveform);
-            applyPatch();
-        }
-    }
-
-    public void setLFOWaveform(Waveform LFOWaveForm) {
-        if (this.LFOWaveForm != LFOWaveForm) {
-            updateLFOWaveform(LFOWaveForm);
-        }
-    }
-
     public void setMasterVolume(double volumeScalar){
         this.mixStageAttenuation = this.mixStageAttenuation * volumeScalar;
     }
 
     /**
-     * Applies all current patch settings to all voices.
+     * Applies all current patch settings to all voices. Hook for potential future patch loading system.
      */
     public void applyPatch(){
-        updateWaveForm(this.waveform);
-        updateLFOWaveform(this.LFOWaveForm);
+        setOscillatorWaveform(this.waveform);
+        setLFOWaveform(this.LFOWaveForm);
         for(int i = 0; i < voices.length; i++){
-            updateVoiceParams(voices[i]);
+            setVoiceParams(voices[i]);
         }
         setLFOFrequency(this.LFOFrequency);
     }
@@ -335,19 +320,6 @@ public class Synthesiser{
         return (this.LFOPosition * this.panDepth);
     }
 
-    /**
-     * Checks if any voice is currently active (i.e., not in the IDLE stage).
-     * @return true if at least one voice is active, false otherwise.
-     */
-    public boolean anyVoicesActive(){
-        for (int i = 0; i < voices.length; i++){
-            if (voices[i].isActive()){
-                return true;
-            }
-        }
-        return false;
-    }
-
     // --- Synth Control/Processing Methods ---
 
     /**
@@ -389,8 +361,8 @@ public class Synthesiser{
                           double panDepth) {
 
         // Store the master settings for the synth
-        updateWaveForm(waveform); // Clears and re-populates voice bank with new waveform
-        updateLFOWaveform(LFOWaveForm);
+        setOscillatorWaveform(waveform);
+        setLFOWaveform(LFOWaveForm);
         setFilterCutoff(filterCutoff);
         setFilterResonance(filterResonance);
         setFilterModRange(filterModRange);
@@ -445,7 +417,7 @@ public class Synthesiser{
             // Apply Settings to Target Voice
             targetVoice.setOscillatorPitch(pitchMIDI);
             targetVoice.setVelocity(velocity);
-            updateVoiceParams(targetVoice);
+            setVoiceParams(targetVoice);
             targetVoice.setPanPosition(getPanPosition());
             targetVoice.setNoteOnTime(System.nanoTime());
             targetVoice.noteOn();
@@ -509,7 +481,8 @@ public class Synthesiser{
         Map<String, Long> timings = new HashMap<>();
         long startTime, endTime;
 
-        // Clear the output buffer
+        // Clear the output buffer and timings map
+        timings.clear();
         Arrays.fill(stereoOutputBuffer, 0.0);
 
         // Populate LFO buffer
