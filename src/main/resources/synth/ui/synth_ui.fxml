@@ -23,7 +23,7 @@
                 <Insets bottom="20.0" left="30.0" right="30.0" top="20.0" />
             </padding>
             <Label text="JUNE'S LOGUE" styleClass="title-label" />
-            <Label text="ANALOGUE SYNTHESISER" styleClass="subtitle-label" />
+            <Label text="JAVA SYNTHESISER" styleClass="subtitle-label" />
             
             <!-- Device Selection Row -->
             <HBox spacing="40.0" style="-fx-alignment: center-left; -fx-padding: 20 0 0 0;">
