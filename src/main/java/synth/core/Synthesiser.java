@@ -40,7 +40,7 @@ public class Synthesiser{
     // Gain Staging
     private double preFilterGainDB;
     private double postFilterGainDB;
-    private double voiceSumAttenuation;
+    private final double voiceSumAttenuation;
     private double volumeAttenuation;
 
     // LFO
