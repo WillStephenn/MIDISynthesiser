@@ -20,8 +20,9 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
-import synth.midi.MidiDeviceConnector;
+import javafx.scene.layout.VBox;
 import synth.core.Synthesiser;
+import synth.midi.MidiDeviceConnector;
 import synth.utils.AudioConstants;
 import synth.utils.AudioDeviceConnector;
 
@@ -89,6 +90,14 @@ public class SynthUIController implements Initializable {
     @FXML private Label filterSustainLabel;
     @FXML private Slider filterReleaseSlider;
     @FXML private Label filterReleaseLabel;
+    
+    // Envelope Visualizers (created programmatically)
+    private EnvelopeVisualizer ampEnvelopeVisualizer;
+    private EnvelopeVisualizer filterEnvelopeVisualizer;
+    
+    // FXML UI Components - Envelope Containers
+    @FXML private VBox ampEnvelopeContainer;
+    @FXML private VBox filterEnvelopeContainer;
     
     // FXML UI Components - Global Controls
     @FXML private Slider masterVolumeSlider;
@@ -160,7 +169,7 @@ public class SynthUIController implements Initializable {
         // Oscillator Controls
         waveformChoiceBox.setItems(FXCollections.observableArrayList(Synthesiser.Waveform.values()));
         waveformChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
-            if (n != null) synth.setWaveform(n);
+            if (n != null) synth.setOscillatorWaveform(n);
         });
 
         // LFO Controls
@@ -171,6 +180,7 @@ public class SynthUIController implements Initializable {
 
         setupLFOControls();
         setupFilterControls();
+        setupEnvelopeVisualizers();
         setupAmpEnvelopeControls();
         setupFilterEnvelopeControls();
         setupGlobalControls();
@@ -184,6 +194,78 @@ public class SynthUIController implements Initializable {
             double freq = n.doubleValue();
             synth.setLFOFrequency(freq);
             lfoFrequencyLabel.setText(frequencyFormat.format(freq) + " Hz");
+        });
+    }
+    
+    /**
+     * Sets up envelope visualizers and connects them to the synthesiser parameters.
+     */
+    private void setupEnvelopeVisualizers() {
+        // Create envelope visualizers
+        ampEnvelopeVisualizer = new EnvelopeVisualizer(240, 120);
+        filterEnvelopeVisualizer = new EnvelopeVisualizer(240, 120);
+        
+        // Add visualizers to their containers
+        ampEnvelopeContainer.getChildren().add(ampEnvelopeVisualizer);
+        filterEnvelopeContainer.getChildren().add(filterEnvelopeVisualizer);
+        
+        // Bind visualizer properties to synthesiser parameters
+        // Amp envelope
+        ampEnvelopeVisualizer.attackTimeProperty().addListener((obs, o, n) -> {
+            double attack = n.doubleValue();
+            synth.setAmpAttackTime(attack);
+            ampAttackSlider.setValue(attack);
+            ampAttackLabel.setText(timeFormat.format(attack) + " s");
+        });
+        
+        ampEnvelopeVisualizer.decayTimeProperty().addListener((obs, o, n) -> {
+            double decay = n.doubleValue();
+            synth.setAmpDecayTime(decay);
+            ampDecaySlider.setValue(decay);
+            ampDecayLabel.setText(timeFormat.format(decay) + " s");
+        });
+        
+        ampEnvelopeVisualizer.sustainLevelProperty().addListener((obs, o, n) -> {
+            double sustain = n.doubleValue();
+            synth.setAmpSustainLevel(sustain);
+            ampSustainSlider.setValue(sustain);
+            ampSustainLabel.setText(levelFormat.format(sustain));
+        });
+        
+        ampEnvelopeVisualizer.releaseTimeProperty().addListener((obs, o, n) -> {
+            double release = n.doubleValue();
+            synth.setAmpReleaseTime(release);
+            ampReleaseSlider.setValue(release);
+            ampReleaseLabel.setText(timeFormat.format(release) + " s");
+        });
+        
+        // Filter envelope
+        filterEnvelopeVisualizer.attackTimeProperty().addListener((obs, o, n) -> {
+            double attack = n.doubleValue();
+            synth.setFilterAttackTime(attack);
+            filterAttackSlider.setValue(attack);
+            filterAttackLabel.setText(timeFormat.format(attack) + " s");
+        });
+        
+        filterEnvelopeVisualizer.decayTimeProperty().addListener((obs, o, n) -> {
+            double decay = n.doubleValue();
+            synth.setFilterDecayTime(decay);
+            filterDecaySlider.setValue(decay);
+            filterDecayLabel.setText(timeFormat.format(decay) + " s");
+        });
+        
+        filterEnvelopeVisualizer.sustainLevelProperty().addListener((obs, o, n) -> {
+            double sustain = n.doubleValue();
+            synth.setFilterSustainLevel(sustain);
+            filterSustainSlider.setValue(sustain);
+            filterSustainLabel.setText(levelFormat.format(sustain));
+        });
+        
+        filterEnvelopeVisualizer.releaseTimeProperty().addListener((obs, o, n) -> {
+            double release = n.doubleValue();
+            synth.setFilterReleaseTime(release);
+            filterReleaseSlider.setValue(release);
+            filterReleaseLabel.setText(timeFormat.format(release) + " s");
         });
     }
     
@@ -217,24 +299,28 @@ public class SynthUIController implements Initializable {
         ampAttackSlider.valueProperty().addListener((obs, o, n) -> {
             double attack = n.doubleValue();
             synth.setAmpAttackTime(attack);
+            ampEnvelopeVisualizer.setAttackTime(attack);
             ampAttackLabel.setText(timeFormat.format(attack) + " s");
         });
         
         ampDecaySlider.valueProperty().addListener((obs, o, n) -> {
             double decay = n.doubleValue();
             synth.setAmpDecayTime(decay);
+            ampEnvelopeVisualizer.setDecayTime(decay);
             ampDecayLabel.setText(timeFormat.format(decay) + " s");
         });
         
         ampSustainSlider.valueProperty().addListener((obs, o, n) -> {
             double sustain = n.doubleValue();
             synth.setAmpSustainLevel(sustain);
+            ampEnvelopeVisualizer.setSustainLevel(sustain);
             ampSustainLabel.setText(levelFormat.format(sustain));
         });
         
         ampReleaseSlider.valueProperty().addListener((obs, o, n) -> {
             double release = n.doubleValue();
             synth.setAmpReleaseTime(release);
+            ampEnvelopeVisualizer.setReleaseTime(release);
             ampReleaseLabel.setText(timeFormat.format(release) + " s");
         });
     }
@@ -246,24 +332,28 @@ public class SynthUIController implements Initializable {
         filterAttackSlider.valueProperty().addListener((obs, o, n) -> {
             double attack = n.doubleValue();
             synth.setFilterAttackTime(attack);
+            filterEnvelopeVisualizer.setAttackTime(attack);
             filterAttackLabel.setText(timeFormat.format(attack) + " s");
         });
         
         filterDecaySlider.valueProperty().addListener((obs, o, n) -> {
             double decay = n.doubleValue();
             synth.setFilterDecayTime(decay);
+            filterEnvelopeVisualizer.setDecayTime(decay);
             filterDecayLabel.setText(timeFormat.format(decay) + " s");
         });
         
         filterSustainSlider.valueProperty().addListener((obs, o, n) -> {
             double sustain = n.doubleValue();
             synth.setFilterSustainLevel(sustain);
+            filterEnvelopeVisualizer.setSustainLevel(sustain);
             filterSustainLabel.setText(levelFormat.format(sustain));
         });
         
         filterReleaseSlider.valueProperty().addListener((obs, o, n) -> {
             double release = n.doubleValue();
             synth.setFilterReleaseTime(release);
+            filterEnvelopeVisualizer.setReleaseTime(release);
             filterReleaseLabel.setText(timeFormat.format(release) + " s");
         });
     }
@@ -326,6 +416,17 @@ public class SynthUIController implements Initializable {
         filterDecaySlider.setValue(synth.getFilterDecayTime());
         filterSustainSlider.setValue(synth.getFilterSustainLevel());
         filterReleaseSlider.setValue(synth.getFilterReleaseTime());
+        
+        // Sync envelope visualizers
+        ampEnvelopeVisualizer.setAttackTime(synth.getAmpAttackTime());
+        ampEnvelopeVisualizer.setDecayTime(synth.getAmpDecayTime());
+        ampEnvelopeVisualizer.setSustainLevel(synth.getAmpSustainLevel());
+        ampEnvelopeVisualizer.setReleaseTime(synth.getAmpReleaseTime());
+        
+        filterEnvelopeVisualizer.setAttackTime(synth.getFilterAttackTime());
+        filterEnvelopeVisualizer.setDecayTime(synth.getFilterDecayTime());
+        filterEnvelopeVisualizer.setSustainLevel(synth.getFilterSustainLevel());
+        filterEnvelopeVisualizer.setReleaseTime(synth.getFilterReleaseTime());
         
         // Global Control settings
         masterVolumeSlider.setValue(currentMasterVolume);
@@ -411,7 +512,7 @@ public class SynthUIController implements Initializable {
             while (!Thread.currentThread().isInterrupted()) {
                 // Use the instrumented version of processBlock
                 Map<String, Long> blockTimings = synth.processBlockInstrumented(audioBlock);
-                
+
                 // Aggregate timings from this block into the total
                 blockTimings.forEach((key, value) -> totalTimings.merge(key, value, Long::sum));
                 blockCount++;
@@ -436,12 +537,12 @@ public class SynthUIController implements Initializable {
                             .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                             .forEach(entry -> {
                                 long avgTimeNanos = entry.getValue() / blockCount;
-                                System.out.printf("%-25s: %d µs%n", entry.getKey(), 
+                                System.out.printf("%-25s: %d µs%n", entry.getKey(),
                                                   TimeUnit.NANOSECONDS.toMicros(avgTimeNanos));
                             });
                     }
                     System.out.println("---------------------------------");
-                    
+
                     // Reset for the next reporting interval
                     totalTimings.clear();
                     blockCount = 0;
@@ -469,5 +570,21 @@ public class SynthUIController implements Initializable {
             midiDevice.close();
         }
         Platform.exit();
+    }
+    
+    /**
+     * Gets the amplitude envelope visualizer for adding to the UI.
+     * @return The amp envelope visualizer component.
+     */
+    public EnvelopeVisualizer getAmpEnvelopeVisualizer() {
+        return ampEnvelopeVisualizer;
+    }
+    
+    /**
+     * Gets the filter envelope visualizer for adding to the UI.
+     * @return The filter envelope visualizer component.
+     */
+    public EnvelopeVisualizer getFilterEnvelopeVisualizer() {
+        return filterEnvelopeVisualizer;
     }
 }

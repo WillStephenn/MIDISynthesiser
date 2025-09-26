@@ -116,8 +116,13 @@
                 <Separator style="-fx-background-color: #BA5624; -fx-pref-height: 2; -fx-opacity: 0.6;" />
                 <VBox.margin><Insets bottom="15.0" /></VBox.margin>
                 
-                <VBox spacing="20.0">
-                    <VBox spacing="8.0">
+                <!-- Envelope Visualiser Area -->
+                <VBox fx:id="ampEnvelopeContainer" prefHeight="130" prefWidth="240" style="-fx-border-color: #BA5624; -fx-border-width: 1; -fx-background-color: #0A0908;">
+                    <VBox.margin><Insets bottom="15.0" /></VBox.margin>
+                </VBox>
+                
+                <VBox spacing="15.0">
+                    <VBox spacing="6.0">
                         <HBox style="-fx-alignment: center-left;">
                             <Label text="ATTACK" styleClass="parameter-label" />
                             <Label fx:id="ampAttackLabel" text="0.005 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
@@ -125,7 +130,7 @@
                         <Slider fx:id="ampAttackSlider" min="0.001" max="5.0" value="0.005" prefWidth="240.0" styleClass="envelope-slider" />
                     </VBox>
                     
-                    <VBox spacing="8.0">
+                    <VBox spacing="6.0">
                         <HBox style="-fx-alignment: center-left;">
                             <Label text="DECAY" styleClass="parameter-label" />
                             <Label fx:id="ampDecayLabel" text="0.1 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
@@ -133,7 +138,7 @@
                         <Slider fx:id="ampDecaySlider" min="0.001" max="5.0" value="0.1" prefWidth="240.0" styleClass="envelope-slider" />
                     </VBox>
                     
-                    <VBox spacing="8.0">
+                    <VBox spacing="6.0">
                         <HBox style="-fx-alignment: center-left;">
                             <Label text="SUSTAIN" styleClass="parameter-label" />
                             <Label fx:id="ampSustainLabel" text="0.4" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
@@ -141,7 +146,7 @@
                         <Slider fx:id="ampSustainSlider" min="0.0" max="1.0" value="0.4" prefWidth="240.0" styleClass="envelope-slider" />
                     </VBox>
                     
-                    <VBox spacing="8.0">
+                    <VBox spacing="6.0">
                         <HBox style="-fx-alignment: center-left;">
                             <Label text="RELEASE" styleClass="parameter-label" />
                             <Label fx:id="ampReleaseLabel" text="0.4 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
@@ -157,8 +162,13 @@
                 <Separator style="-fx-background-color: #BA5624; -fx-pref-height: 2; -fx-opacity: 0.6;" />
                 <VBox.margin><Insets bottom="15.0" /></VBox.margin>
                 
-                <VBox spacing="20.0">
-                    <VBox spacing="8.0">
+                <!-- Filter Envelope Visualiser Area -->
+                <VBox fx:id="filterEnvelopeContainer" prefHeight="130" prefWidth="240" style="-fx-border-color: #BA5624; -fx-border-width: 1; -fx-background-color: #0A0908;">
+                    <VBox.margin><Insets bottom="15.0" /></VBox.margin>
+                </VBox>
+                
+                <VBox spacing="15.0">
+                    <VBox spacing="6.0">
                         <HBox style="-fx-alignment: center-left;">
                             <Label text="ATTACK" styleClass="parameter-label" />
                             <Label fx:id="filterAttackLabel" text="0.01 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
@@ -166,7 +176,7 @@
                         <Slider fx:id="filterAttackSlider" min="0.001" max="5.0" value="0.01" prefWidth="240.0" styleClass="filter-slider" />
                     </VBox>
                     
-                    <VBox spacing="8.0">
+                    <VBox spacing="6.0">
                         <HBox style="-fx-alignment: center-left;">
                             <Label text="DECAY" styleClass="parameter-label" />
                             <Label fx:id="filterDecayLabel" text="0.3 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
@@ -174,7 +184,7 @@
                         <Slider fx:id="filterDecaySlider" min="0.001" max="5.0" value="0.3" prefWidth="240.0" styleClass="filter-slider" />
                     </VBox>
                     
-                    <VBox spacing="8.0">
+                    <VBox spacing="6.0">
                         <HBox style="-fx-alignment: center-left;">
                             <Label text="SUSTAIN" styleClass="parameter-label" />
                             <Label fx:id="filterSustainLabel" text="0.5" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
@@ -182,7 +192,7 @@
                         <Slider fx:id="filterSustainSlider" min="0.0" max="1.0" value="0.5" prefWidth="240.0" styleClass="filter-slider" />
                     </VBox>
                     
-                    <VBox spacing="8.0">
+                    <VBox spacing="6.0">
                         <HBox style="-fx-alignment: center-left;">
                             <Label text="RELEASE" styleClass="parameter-label" />
                             <Label fx:id="filterReleaseLabel" text="0.1 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
