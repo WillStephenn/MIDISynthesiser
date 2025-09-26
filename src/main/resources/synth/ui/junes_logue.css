@@ -1,0 +1,228 @@
+/* June's Logue - Modern/Vintage Teracotta Theme CSS */
+
+/* Color Palette:
+   Black: #0A0908
+   Chocolate cosmos: #49111C  
+   White smoke: #F2F4F3
+   Burnt orange: #BA5624
+   Orange peel: #FF9F1C
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+/* Root styling */
+.root {
+    -fx-background-color: #0A0908;
+    -fx-font-family: "Orbitron", "Trebuchet MS", monospace;
+    -fx-font-size: 12px;
+}
+
+/* Choice Box Styling */
+.choice-box {
+    -fx-background-color: #0A0908;
+    -fx-border-color: #BA5624;
+    -fx-border-width: 2px;
+    -fx-border-radius: 4px;
+    -fx-text-fill: #F2F4F3;
+    -fx-font-family: "Orbitron", "Trebuchet MS", monospace;
+    -fx-font-size: 11px;
+    -fx-effect: dropshadow(gaussian, #FF9F1C, 2, 0.2, 0, 0);
+}
+
+.choice-box:hover {
+    -fx-border-color: #FF9F1C;
+    -fx-effect: dropshadow(gaussian, #FF9F1C, 4, 0.4, 0, 0);
+}
+
+.choice-box:focused {
+    -fx-border-color: #FF9F1C;
+    -fx-effect: dropshadow(gaussian, #FF9F1C, 6, 0.6, 0, 0);
+}
+
+.choice-box > .label {
+    -fx-text-fill: #F2F4F3;
+    -fx-font-family: "Orbitron", "Trebuchet MS", monospace;
+}
+
+.choice-box .context-menu {
+    -fx-background-color: #49111C;
+    -fx-border-color: #BA5624;
+    -fx-border-width: 2px;
+}
+
+.choice-box .menu-item {
+    -fx-background-color: #49111C;
+    -fx-text-fill: #F2F4F3;
+    -fx-font-family: "Orbitron", "Trebuchet MS", monospace;
+}
+
+.choice-box .menu-item:hover {
+    -fx-background-color: #BA5624;
+    -fx-text-fill: #FF9F1C;
+}
+
+/* Slider Styling */
+.slider {
+    -fx-padding: 5px;
+}
+
+.slider .track {
+    -fx-background-color: #49111C;
+    -fx-border-color: #BA5624;
+    -fx-border-width: 1px;
+    -fx-border-radius: 2px;
+    -fx-background-radius: 2px;
+}
+
+.slider .thumb {
+    -fx-background-color: linear-gradient(to bottom, #FF9F1C, #BA5624);
+    -fx-border-color: #F2F4F3;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, #0A0908, 4, 0.5, 0, 2);
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+}
+
+.slider .thumb:hover {
+    -fx-background-color: linear-gradient(to bottom, #FFBF4C, #FF9F1C);
+    -fx-effect: dropshadow(gaussian, #FF9F1C, 6, 0.7, 0, 2);
+    -fx-scale-x: 1.1;
+    -fx-scale-y: 1.1;
+}
+
+.slider .thumb:pressed {
+    -fx-background-color: #FF9F1C;
+    -fx-effect: dropshadow(gaussian, #BA5624, 8, 0.8, 0, 2);
+}
+
+/* Different colored tracks for different sections */
+.oscillator-slider .track {
+    -fx-background-color: #0A0908;
+    -fx-border-color: #FF9F1C;
+}
+
+.filter-slider .track {
+    -fx-background-color: #49111C;
+    -fx-border-color: #FF9F1C;
+}
+
+.envelope-slider .track {
+    -fx-background-color: #0A0908;
+    -fx-border-color: #FF9F1C;
+}
+
+/* Global controls styling */
+.global-slider .track {
+    -fx-background-color: linear-gradient(to right, #49111C, #0A0908);
+    -fx-border-color: #BA5624;
+    -fx-border-width: 2px;
+}
+
+.global-slider .thumb {
+    -fx-background-color: linear-gradient(to bottom, #BA5624, #FF9F1C);
+    -fx-border-color: #F2F4F3;
+    -fx-border-width: 2px;
+    -fx-effect: dropshadow(gaussian, #FF9F1C, 6, 0.8, 0, 2);
+}
+
+/* Label Styling */
+.label {
+    -fx-text-fill: #F2F4F3;
+    -fx-font-family: "Orbitron", "Trebuchet MS", monospace;
+}
+
+.section-header {
+    -fx-text-fill: #FF9F1C;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, #BA5624, 2, 0.3, 0, 1);
+}
+
+.parameter-label {
+    -fx-text-fill: #F2F4F3;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.value-readout {
+    -fx-text-fill: #FF9F1C;
+    -fx-font-size: 10px;
+    -fx-font-family: "Orbitron", "Trebuchet MS", monospace;
+}
+
+.title-label {
+    -fx-text-fill: #FF9F1C;
+    -fx-font-size: 36px;
+    -fx-font-weight: 900;
+    -fx-effect: dropshadow(gaussian, #BA5624, 4, 0.3, 0, 2);
+}
+
+.subtitle-label {
+    -fx-text-fill: #F2F4F3;
+    -fx-font-size: 14px;
+    -fx-font-weight: normal;
+    -fx-opacity: 0.8;
+}
+
+/* Separator Styling */
+.separator .line {
+    -fx-background-color: #BA5624;
+    -fx-opacity: 0.6;
+}
+
+/* VBox and HBox styling for sections */
+.section-box {
+    -fx-background-color: #49111C;
+    -fx-border-color: #BA5624;
+    -fx-border-width: 0 2 0 0;
+    -fx-padding: 30;
+}
+
+.filter-section-box {
+    -fx-background-color: #0A0908;
+    -fx-border-color: #BA5624;
+    -fx-border-width: 0 2 0 0;
+    -fx-padding: 30;
+}
+
+.header-box {
+    -fx-background-color: #49111C;
+    -fx-border-color: #BA5624;
+    -fx-border-width: 0 0 3 0;
+}
+
+/* Animation effects */
+.slider:hover {
+    -fx-effect: dropshadow(gaussian, #FF9F1C, 4, 0.3, 0, 0);
+}
+
+.choice-box:hover .label {
+    -fx-text-fill: #FF9F1C;
+}
+
+/* Scrollbar styling (if needed) */
+.scroll-bar {
+    -fx-background-color: #49111C;
+}
+
+.scroll-bar .track {
+    -fx-background-color: #0A0908;
+    -fx-border-color: #BA5624;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #FF9F1C;
+    -fx-border-color: #BA5624;
+}
+
+/* Tooltip styling */
+.tooltip {
+    -fx-background-color: #49111C;
+    -fx-text-fill: #F2F4F3;
+    -fx-border-color: #BA5624;
+    -fx-border-width: 1px;
+    -fx-font-family: "Orbitron", "Trebuchet MS", monospace;
+    -fx-font-size: 10px;
+}
