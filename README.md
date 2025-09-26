@@ -4,10 +4,7 @@ This project is a polyphonic MIDI synthesiser built entirely in Java with a Java
 
 The primary goal was to build a functional synthesiser from the ground up, intentionally avoiding third-party libraries for DSP and synthesis to engage directly with the core challenges of audio programming.
 
-![Arpeggiated Chord Stabs Player](Repo%20Resources/Arpeggiated%20Chord%20Stabs.mp4)
-
----
-
+![Arpeggiated Chord Stabs Player](httpss://raw.githubusercontent.com/WillStephenn/MIDISynthesiser/master/Repo%20Resources/Arpeggiated%20Chord%20Stabs.mp4)
 ## Features
 
 The synthesiser provides a complete synthesis signal path with a flexible, polyphonic voice architecture.
