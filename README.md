@@ -21,6 +21,28 @@ The synthesiser provides a complete synthesis signal path with a flexible, polyp
 
 ---
 
+## Architecture
+
+![Synth Architecture UML Diagram](Repo%20Resources/Synth%20Architechture.png)
+
+The synthesiser's architecture is designed around a clear separation of concerns, promoting modularity and extensibility. At the core of the design are the **Synthesiser** and **Voice** classes, which work together to manage the entire audio signal path.
+
+* **The `Voice` Class**: The `Voice` class is the fundamental building block of the synthesiser's sound-generating capabilities. Each `Voice` instance is a self-contained monophonic synthesiser, encapsulating all the necessary audio components to produce a single note. This includes:
+    * An **Oscillator** to generate the initial waveform (e.g., sine, saw, square, triangle).
+    * A **ResonantLowPassFilter** to shape the timbre of the sound.
+    * Two **Envelope** generators (ADSR) to modulate the amplitude and filter cutoff over time.
+
+    By encapsulating these components, the `Voice` class provides a simple interface for controlling the sound of a single note, while hiding the complexity of the underlying audio processing.
+
+* **The `Synthesiser` Class**: The `Synthesiser` class acts as the central point of control for the entire instrument. It manages a pool of `Voice` objects to create a polyphonic synthesiser. Its key responsibilities include:
+    * **Voice Management**: The `Synthesiser` is responsible for allocating, triggering, and releasing `Voice` instances in response to MIDI input. It implements a voice-stealing algorithm to manage polyphony, ensuring that new notes can be played even when all voices are active.
+    * **Global Parameter Control**: It provides a unified interface for controlling global parameters that affect all voices simultaneously, such as master volume, LFO settings, and the overall patch configuration.
+    * **Audio Mixing**: The `Synthesiser` is responsible for mixing the audio output of all active voices into a single stereo audio stream, which is then sent to the audio output device.
+
+This hierarchical architecture, with the `Synthesiser` class managing multiple `Voice` instances, allows for a clean and efficient implementation of a polyphonic synthesiser. It provides a clear separation between the high-level control logic of the synthesiser and the low-level audio processing of the individual voices.
+
+---
+
 ## Audio Samples
 
 The following are performances synthesised by this application:
