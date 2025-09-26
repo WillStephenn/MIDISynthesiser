@@ -28,7 +28,7 @@ public class SynthApplication extends Application {
         primaryStage.setOnCloseRequest(event -> controller.shutdown());
 
         primaryStage.setTitle("MIDI Synthesiser");
-        primaryStage.setScene(new Scene(root, 800, 600));
+        primaryStage.setScene(new Scene(root, 1200, 800));
         primaryStage.show();
     }
 
