@@ -21,6 +21,12 @@ The synthesiser provides a complete synthesis signal path with a flexible, polyp
 
 ---
 
+## Architechture
+
+![Synth Architecture UML Diagram](Repo%20Resources/Synth%20Architechture.png)
+
+---
+
 ## Audio Samples
 
 The following are performances synthesised by this application:
