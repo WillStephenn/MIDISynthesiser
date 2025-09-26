@@ -4,7 +4,8 @@ This project is a polyphonic MIDI synthesiser built entirely in Java with a Java
 
 The primary goal was to build a functional synthesiser from the ground up, intentionally avoiding third-party libraries for DSP and synthesis to engage directly with the core challenges of audio programming.
 
-![Arpeggiated Chord Stabs Player](httpss://raw.githubusercontent.com/WillStephenn/MIDISynthesiser/master/Repo%20Resources/Arpeggiated%20Chord%20Stabs.mp4)
+---
+
 ## Features
 
 The synthesiser provides a complete synthesis signal path with a flexible, polyphonic voice architecture.
@@ -16,6 +17,16 @@ The synthesiser provides a complete synthesis signal path with a flexible, polyp
 * **Low-Frequency Oscillator (LFO)**: A global LFO with multiple waveforms (sine, saw, triangle, square) can be used to modulate parameters, including stereo panning.
 * **Full MIDI Control**: The synthesiser can be controlled in real-time via any standard MIDI input device. It handles Note On, Note Off, Velocity and Control Change (CC) messages to dynamically shape the sound.
 * **Graphical User Interface**: A complete GUI built with JavaFX allows for intuitive control over all synthesiser parameters, including device selection, oscillator and filter settings, envelopes, and global controls.
+
+---
+
+## Audio Samples
+
+The following are performances synthesised by this application:
+
+6 Voice Polyphony: [Arpeggiated Chord Stabs](https://drive.google.com/file/d/17FLlwFqXUtrMBFGSPvTjsKWTTUtj5Yr5/view?usp=drive_link)
+
+1 Voice Monophic Synthesis: [Mono Bass Patch](https://drive.google.com/file/d/1jlSh9eo3OYC4EuEYe00UqcerP15NBXK_/view?usp=drive_link)
 
 ---
 
