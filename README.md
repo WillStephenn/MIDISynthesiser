@@ -4,6 +4,7 @@ This project is a polyphonic MIDI synthesiser built entirely in Java with a Java
 
 The primary goal was to build a functional synthesiser from the ground up, intentionally avoiding third-party libraries for DSP and synthesis to engage directly with the core challenges of audio programming.
 
+![UI Screenshot](Repo%20Resources/UI%20Screenshot.png)
 ---
 
 ## Features
