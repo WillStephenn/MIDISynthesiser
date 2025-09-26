@@ -12,15 +12,10 @@ public class ResonantLowPassFilter extends Filter{
     private double integrator1;
     private double integrator2;
 
-    // LUT Indices
-    private int cutoffIndex = 0;
-    private int resonanceIndex = 0;
-
     // Constant Pre-Computed Constants
     private final double cutoffScalar;
     private final double resonanceScalar;
     private final double nyquistLimit;
-
 
     // Cached coefficients
     private double a1, a2, a3;
