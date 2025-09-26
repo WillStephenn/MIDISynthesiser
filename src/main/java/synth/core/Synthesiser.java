@@ -40,7 +40,8 @@ public class Synthesiser{
     // Gain Staging
     private double preFilterGainDB;
     private double postFilterGainDB;
-    private double mixStageAttenuation;
+    private double voiceSumAttenuation;
+    private double volumeAttenuation;
 
     // LFO
     private Oscillator LFO;
@@ -68,7 +69,8 @@ public class Synthesiser{
         if (noVoices <= 0) {
             throw new IllegalArgumentException("Number of voices must be positive.");
         }
-        this.mixStageAttenuation = 1.0 / Math.sqrt(noVoices);
+        this.voiceSumAttenuation = 1.0 / Math.sqrt(noVoices);
+        this.volumeAttenuation = this.voiceSumAttenuation;
         this.voices = new Voice[noVoices];
 
         // Populate voice bank
@@ -258,7 +260,7 @@ public class Synthesiser{
     }
 
     public void setMasterVolume(double volumeScalar){
-        this.mixStageAttenuation = this.mixStageAttenuation * volumeScalar;
+        this.volumeAttenuation = this.voiceSumAttenuation * volumeScalar;
     }
 
     /**
@@ -457,7 +459,7 @@ public class Synthesiser{
                     // If the voice is active, process its block and sum it into the output buffer.
                     voice.processBlock(null, this.voiceOutputBuffer, this.blockSize);
                     for(int j = 0; j < this.blockSize * 2; j++){
-                        stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * this.mixStageAttenuation;
+                        stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * this.volumeAttenuation;
                         this.LFOPosition = lfoOutputBuffer[j/2];
                     }
                 }
@@ -499,7 +501,7 @@ public class Synthesiser{
                 if (voice.isActive()) {
                     voice.processBlockInstrumented(this.lfoOutputBuffer, this.voiceOutputBuffer, this.blockSize, timings);
                     for(int j = 0; j < this.blockSize * 2; j++){
-                        stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * this.mixStageAttenuation;
+                        stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * this.volumeAttenuation;
                         this.LFOPosition = lfoOutputBuffer[j/2];
                     }
                 }
