@@ -39,6 +39,7 @@ public class SynthUIController implements Initializable {
     private SourceDataLine line;
     private MidiDevice midiDevice;
     private Thread audioThread;
+    private volatile boolean audioThreadRunning = false;
     
     // Performance logging variables
     private final Map<String, Long> totalTimings = new HashMap<>();
@@ -468,13 +469,37 @@ public class SynthUIController implements Initializable {
      * @param deviceName The name of the new audio device.
      */
     private void changeAudioDevice(String deviceName) {
-        if (audioThread != null) {
+        // Stop the old audio thread and wait for it to finish
+        if (audioThread != null && audioThread.isAlive()) {
+            // Signal the thread to stop
+            audioThreadRunning = false;
             audioThread.interrupt();
-        }
-        if (line != null) {
-            line.close();
+
+            // Close the line first to unblock any write() calls
+            if (line != null) {
+                line.stop();
+                line.close();
+            }
+
+            try {
+                // Wait for the thread to actually terminate (with a longer timeout)
+                audioThread.join(5000); // Wait up to 5 seconds
+                if (audioThread.isAlive()) {
+                    System.err.println("ERROR: Audio thread did not terminate after 5 seconds!");
+                    System.err.println("Cannot safely switch audio devices. Please restart the application.");
+                    return; // Don't start a new thread if the old one is still running
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.err.println("Interrupted while waiting for audio thread to stop");
+                return;
+            }
+            
+            // Ensure we've cleaned up the reference
+            audioThread = null;
         }
 
+        // Now safely start the new audio device
         AudioFormat audioFormat = new AudioFormat((float) AudioConstants.SAMPLE_RATE, 16, 2, true, true);
         try {
             line = AudioDeviceConnector.getOutputLine(deviceName, audioFormat);
@@ -484,10 +509,10 @@ public class SynthUIController implements Initializable {
                 startAudioProcessingThread();
             }
         } catch (LineUnavailableException e) {
+            System.err.println("Failed to open audio device: " + e.getMessage());
             e.printStackTrace();
         }
     }
-
     /**
      * Changes the active MIDI input device.
      * @param deviceName The name of the new MIDI device.
@@ -504,51 +529,71 @@ public class SynthUIController implements Initializable {
      * Includes performance instrumentation that reports timing data every 5 seconds.
      */
     private void startAudioProcessingThread() {
+        audioThreadRunning = true;
         audioThread = new Thread(() -> {
             double[] audioBlock = new double[AudioConstants.BLOCK_SIZE * 2];
             byte[] buffer = new byte[AudioConstants.BLOCK_SIZE * 4];
             lastReportTime = System.nanoTime();
 
-            while (!Thread.currentThread().isInterrupted()) {
-                // Use the instrumented version of processBlock
-                Map<String, Long> blockTimings = synth.processBlockInstrumented(audioBlock);
+            while (audioThreadRunning && !Thread.currentThread().isInterrupted()) {
+                try {
+                    // Use the instrumented version of processBlock
+                    Map<String, Long> blockTimings = synth.processBlockInstrumented(audioBlock);
 
-                // Aggregate timings from this block into the total
-                blockTimings.forEach((key, value) -> totalTimings.merge(key, value, Long::sum));
-                blockCount++;
+                    // Aggregate timings from this block into the total
+                    blockTimings.forEach((key, value) -> totalTimings.merge(key, value, Long::sum));
+                    blockCount++;
 
-                // Convert double array to byte array for audio output
-                for (int i = 0; i < AudioConstants.BLOCK_SIZE; i++) {
-                    short pcmLeft = (short) (audioBlock[i * 2] * Short.MAX_VALUE);
-                    buffer[i * 4] = (byte) (pcmLeft >> 8);
-                    buffer[i * 4 + 1] = (byte) pcmLeft;
-                    short pcmRight = (short) (audioBlock[i * 2 + 1] * Short.MAX_VALUE);
-                    buffer[i * 4 + 2] = (byte) (pcmRight >> 8);
-                    buffer[i * 4 + 3] = (byte) pcmRight;
-                }
-                line.write(buffer, 0, buffer.length);
-
-                // Print a performance report every 5 seconds
-                long now = System.nanoTime();
-                if (now - lastReportTime > 5_000_000_000L) { // 5 billion nanoseconds = 5 seconds
-                    System.out.println("\n--- Live Performance Report ---");
-                    if (blockCount > 0) {
-                        totalTimings.entrySet().stream()
-                            .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                            .forEach(entry -> {
-                                long avgTimeNanos = entry.getValue() / blockCount;
-                                System.out.printf("%-25s: %d µs%n", entry.getKey(),
-                                                  TimeUnit.NANOSECONDS.toMicros(avgTimeNanos));
-                            });
+                    // Convert double array to byte array for audio output
+                    for (int i = 0; i < AudioConstants.BLOCK_SIZE; i++) {
+                        short pcmLeft = (short) (audioBlock[i * 2] * Short.MAX_VALUE);
+                        buffer[i * 4] = (byte) (pcmLeft >> 8);
+                        buffer[i * 4 + 1] = (byte) pcmLeft;
+                        short pcmRight = (short) (audioBlock[i * 2 + 1] * Short.MAX_VALUE);
+                        buffer[i * 4 + 2] = (byte) (pcmRight >> 8);
+                        buffer[i * 4 + 3] = (byte) pcmRight;
                     }
-                    System.out.println("---------------------------------");
+                    
+                    // Check if line is still open before writing
+                    if (line != null && line.isOpen()) {
+                        line.write(buffer, 0, buffer.length);
+                    } else {
+                        // Line was closed, exit gracefully
+                        break;
+                    }
 
-                    // Reset for the next reporting interval
-                    totalTimings.clear();
-                    blockCount = 0;
-                    lastReportTime = now;
+                    // Print a performance report every 5 seconds
+                    long now = System.nanoTime();
+                    if (now - lastReportTime > 5_000_000_000L) { // 5 billion nanoseconds = 5 seconds
+                        System.out.println("\n--- Live Performance Report ---");
+                        if (blockCount > 0) {
+                            totalTimings.entrySet().stream()
+                                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                                .forEach(entry -> {
+                                    long avgTimeNanos = entry.getValue() / blockCount;
+                                    System.out.printf("%-25s: %d µs%n", entry.getKey(),
+                                                      TimeUnit.NANOSECONDS.toMicros(avgTimeNanos));
+                                });
+                        }
+                        System.out.println("---------------------------------");
+
+                        // Reset for the next reporting interval
+                        totalTimings.clear();
+                        blockCount = 0;
+                        lastReportTime = now;
+                    }
+                } catch (Exception e) {
+                    // If an exception occurs (e.g., during device switching), exit gracefully
+                    if (audioThreadRunning) {
+                        System.err.println("Audio thread encountered an error: " + e.getMessage());
+                    }
+                    break;
                 }
             }
+            
+            // Clean up before exiting
+            audioThreadRunning = false;
+            System.out.println("Audio thread terminated cleanly.");
         });
         audioThread.setDaemon(true);
         audioThread.setPriority(Thread.MAX_PRIORITY);
@@ -559,16 +604,32 @@ public class SynthUIController implements Initializable {
      * Safely closes audio and MIDI resources when the application exits.
      */
     public void shutdown() {
-        if (audioThread != null) {
+        // Stop the audio thread
+        if (audioThread != null && audioThread.isAlive()) {
+            audioThreadRunning = false;
             audioThread.interrupt();
+            
+            try {
+                audioThread.join(5000);
+                if (audioThread.isAlive()) {
+                    System.err.println("Warning: Audio thread did not terminate during shutdown");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
+        
+        // Close audio resources
         if (line != null) {
             line.stop();
             line.close();
         }
+        
+        // Close MIDI resources
         if (midiDevice != null && midiDevice.isOpen()) {
             midiDevice.close();
         }
+        
         Platform.exit();
     }
     
