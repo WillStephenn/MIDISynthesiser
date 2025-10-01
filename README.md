@@ -7,6 +7,18 @@ The primary goal was to build a functional synthesiser from the ground up, inten
 ![UI Screenshot](Repo%20Resources/UI%20Screenshot.png)
 ---
 
+## Audio Samples
+
+The following are performances synthesised by this application:
+
+**Video Demonstration**: [Live Performance & Parameter Manipulation](https://youtu.be/QA0YQRSpx28) - Screen recording showing the synthesiser receiving MIDI from Logic Pro DAW with real-time parameter adjustments.
+
+6 Voice Polyphony: [Arpeggiated Chord Stabs](https://drive.google.com/file/d/17FLlwFqXUtrMBFGSPvTjsKWTTUtj5Yr5/view?usp=drive_link)
+
+1 Voice Monophic Synthesis: [Mono Bass Patch](https://drive.google.com/file/d/1jlSh9eo3OYC4EuEYe00UqcerP15NBXK_/view?usp=drive_link)
+
+---
+
 ## Features
 
 The synthesiser provides a complete synthesis signal path with a flexible, polyphonic voice architecture.
@@ -40,18 +52,6 @@ The synthesiser's architecture is designed around a clear separation of concerns
     * **Audio Mixing**: The `Synthesiser` is responsible for mixing the audio output of all active voices into a single stereo audio stream, which is then sent to the audio output device.
 
 This hierarchical architecture, with the `Synthesiser` class managing multiple `Voice` instances, allows for a clean and efficient implementation of a polyphonic synthesiser. It provides a clear separation between the high-level control logic of the synthesiser and the low-level audio processing of the individual voices.
-
----
-
-## Audio Samples
-
-The following are performances synthesised by this application:
-
-**Video Demonstration**: [Live Performance & Parameter Manipulation](https://youtu.be/QA0YQRSpx28) - Screen recording showing the synthesiser receiving MIDI from Logic Pro DAW with real-time parameter adjustments.
-
-6 Voice Polyphony: [Arpeggiated Chord Stabs](https://drive.google.com/file/d/17FLlwFqXUtrMBFGSPvTjsKWTTUtj5Yr5/view?usp=drive_link)
-
-1 Voice Monophic Synthesis: [Mono Bass Patch](https://drive.google.com/file/d/1jlSh9eo3OYC4EuEYe00UqcerP15NBXK_/view?usp=drive_link)
 
 ---
 
