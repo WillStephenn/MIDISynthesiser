@@ -64,8 +64,7 @@ To achieve this, several optimisation strategies were employed:
 * **Minimising the Audio Thread Workload**: The most critical aspect was ensuring the audio processing loop is as efficient as possible. This meant minimising floating-point operations (FLOPs) and avoiding any operations that could introduce unpredictable delays.
 * **Pre-computation and Lookup Tables (LUTs)**: To avoid expensive calculations like `Math.sin()` or `Math.tan()` in the real-time audio thread, these values were pre-computed on startup and stored in large lookup tables. This includes all oscillator waveforms and the coefficients for the resonant filter at various cutoff and resonance settings.
 * **Eliminating Garbage Collection**: The audio processing loop is carefully designed to be garbage-free. All necessary memory, such as audio buffers, is allocated at initialisation and reused throughout the application's lifecycle. This is crucial for avoiding the unpredictable pauses that garbage collection can introduce, which would otherwise manifest as audible clicks or glitches.
-* **Efficient Operations**: Where possible, more efficient operations were used. For example, the oscillator's phase wrapping is handled with a bitwise `AND` operation (`& phaseMask`) instead of a more costly conditional or modulo operation. Constants, such as the reciprocal of the sample rate, were also pre-calculated to turn divisions into multiplications within the audio loop.
-
+* **Efficient Operations**: Where possible, more efficient operations were used. For example, the oscillator's phase wrapping is handled with a bitwise `AND` operation (`& phaseMask`) instead of a conditional or modulo operation. This eliminated audible cracks and pops caused by CPU branch misprediction when using conditional statements. Constants, such as the reciprocal of the sample rate, were also pre-calculated to turn divisions into multiplications within the audio loop.
 ---
 
 ## Development Notes
