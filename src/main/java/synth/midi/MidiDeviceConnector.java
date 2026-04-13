@@ -80,6 +80,17 @@ public class MidiDeviceConnector {
      * @return The MidiDevice object if connection is successful, otherwise null.
      */
     public static MidiDevice connectToDevice(Synthesiser synth, String deviceName) {
+        return connectToDevice(synth, deviceName, null);
+    }
+
+    /**
+     * Connects the synthesiser to the first MIDI input device found with the specified name.
+     * @param synth The Synthesiser instance to connect.
+     * @param deviceName The name of the MIDI device to connect to (e.g., "IAC Driver Bus 1").
+     * @param onControlChange Optional callback invoked after a MIDI CC message is processed.
+     * @return The MidiDevice object if connection is successful, otherwise null.
+     */
+    public static MidiDevice connectToDevice(Synthesiser synth, String deviceName, Runnable onControlChange) {
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
         for (MidiDevice.Info info : infos) {
             if (info.getName().equals(deviceName)) {
@@ -89,7 +100,7 @@ public class MidiDeviceConnector {
                     if (device.getMaxTransmitters() != 0) {
                         device.open();
                         Transmitter transmitter = device.getTransmitter();
-                        transmitter.setReceiver(new MidiInputHandler(synth));
+                        transmitter.setReceiver(new MidiInputHandler(synth, onControlChange));
                         System.out.println("Successfully connected to MIDI device: " + deviceName);
                         return device;
                     }
