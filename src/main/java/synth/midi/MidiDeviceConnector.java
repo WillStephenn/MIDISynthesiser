@@ -1,10 +1,15 @@
 package synth.midi;
 
-import synth.core.Synthesiser;
-import javax.sound.midi.*;
 import java.util.ArrayList;
-import java.util.Scanner;
 import java.util.InputMismatchException;
+import java.util.Scanner;
+
+import javax.sound.midi.MidiDevice;
+import javax.sound.midi.MidiSystem;
+import javax.sound.midi.MidiUnavailableException;
+import javax.sound.midi.Transmitter;
+
+import synth.core.Synthesiser;
 
 
 public class MidiDeviceConnector {
