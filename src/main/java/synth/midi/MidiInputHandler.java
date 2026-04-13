@@ -3,6 +3,7 @@ package synth.midi;
 import javax.sound.midi.MidiMessage;
 import javax.sound.midi.Receiver;
 import javax.sound.midi.ShortMessage;
+
 import synth.core.Synthesiser;
 
 /**
