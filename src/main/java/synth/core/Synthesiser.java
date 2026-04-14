@@ -18,30 +18,30 @@ public class Synthesiser{
     public enum Waveform {
         SINE, SAW, TRIANGLE, SQUARE
     }
-    private Waveform waveform;
+    private volatile Waveform waveform;
 
     // Filter
-    private double filterCutoff;
-    private double filterResonance;
-    private double filterModRange;
+    private volatile double filterCutoff;
+    private volatile double filterResonance;
+    private volatile double filterModRange;
 
     // Filter Envelope
-    private double filterAttackTime;
-    private double filterDecayTime;
-    private double filterSustainLevel;
-    private double filterReleaseTime;
+    private volatile double filterAttackTime;
+    private volatile double filterDecayTime;
+    private volatile double filterSustainLevel;
+    private volatile double filterReleaseTime;
 
     // Amp Envelope
-    private double ampAttackTime;
-    private double ampDecayTime;
-    private double ampSustainLevel;
-    private double ampReleaseTime;
+    private volatile double ampAttackTime;
+    private volatile double ampDecayTime;
+    private volatile double ampSustainLevel;
+    private volatile double ampReleaseTime;
 
     // Gain Staging
-    private double preFilterGainDB;
-    private double postFilterGainDB;
+    private volatile double preFilterGainDB;
+    private volatile double postFilterGainDB;
     private final double voiceSumAttenuation;
-    private double volumeAttenuation;
+    private volatile double volumeAttenuation;
 
     // LFO
     private Oscillator LFO;
@@ -49,12 +49,15 @@ public class Synthesiser{
     private final Oscillator sawLFO;
     private final Oscillator triangleLFO;
     private final Oscillator squareLFO;
-    private Waveform LFOWaveForm;
-    private double LFOFrequency;
+    private volatile Waveform LFOWaveForm;
+    private volatile double LFOFrequency;
     private double LFOPosition;
 
     // Panning
-    private double panDepth;
+    private volatile double panDepth;
+
+    // Dirty flag: setters set true, audio thread clears after syncing to voices
+    private volatile boolean paramsDirty = false;
 
     // Output Buffers
     int blockSize;
@@ -93,6 +96,7 @@ public class Synthesiser{
         this.sawLFO = new SawOscillator(sampleRate);
         this.triangleLFO = new TriangleOscillator(sampleRate);
         this.squareLFO = new SquareOscillator(sampleRate);
+        this.LFO = this.sineLFO;
 
         // Default Synth Patch
         loadPatch( // Applies default patch and populates the voice bank
@@ -125,15 +129,6 @@ public class Synthesiser{
     public void setLFOWaveform(Waveform LFOWaveForm){
         if(this.LFOWaveForm != LFOWaveForm){
             this.LFOWaveForm = LFOWaveForm;
-            // Switch to the pre-allocated oscillator
-            switch (LFOWaveForm){
-                case SINE -> this.LFO = this.sineLFO;
-                case SAW -> this.LFO = this.sawLFO;
-                case TRIANGLE -> this.LFO = this.triangleLFO;
-                case SQUARE -> this.LFO = this.squareLFO;
-                default -> throw new IllegalArgumentException("Unsupported waveform: " + LFOWaveForm);
-            }
-            this.LFO.setFrequency(this.LFOFrequency);
         }
     }
 
@@ -145,13 +140,12 @@ public class Synthesiser{
     public void setOscillatorWaveform(Waveform waveform){
         if (this.waveform != waveform){
             this.waveform = waveform;
-            for (int i = 0; i < voices.length; i++){
-                voices[i].setOscillatorWaveform(waveform);
-            }
+            this.paramsDirty = true;
         }
     }
 
     public void setVoiceParams(Voice voice){
+        voice.setOscillatorWaveform(this.waveform);
         voice.setAmpEnvelope(this.ampAttackTime, this.ampDecayTime, this.ampSustainLevel, this.ampReleaseTime);
         voice.setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
         voice.setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModRange);
@@ -161,102 +155,76 @@ public class Synthesiser{
 
     public void setFilterCutoff(double cutoff) {
         this.filterCutoff = Math.max(20.0, Math.min(20000.0, cutoff)); // Clamp to audible range
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModRange);
-        }
+        this.paramsDirty = true;
     }
 
     public void setFilterResonance(double resonance) {
         this.filterResonance = Math.max(1.0, Math.min(20.0, resonance)); // Clamp from 1 to 20
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModRange);
-        }
+        this.paramsDirty = true;
     }
 
     public void setFilterModRange(double modRange) {
         this.filterModRange = Math.max(0.0, modRange);
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModRange);
-        }
+        this.paramsDirty = true;
     }
 
     public void setFilterAttackTime(double seconds) {
         this.filterAttackTime = Math.max(0.0, seconds);
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setFilterEnvelopeAttackTime(this.filterAttackTime);
-        }
+        this.paramsDirty = true;
     }
 
     public void setFilterDecayTime(double seconds) {
         this.filterDecayTime = Math.max(0.0, seconds);
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setFilterEnvelopeDecayTime(this.filterDecayTime);
-        }
+        this.paramsDirty = true;
     }
 
     public void setFilterSustainLevel(double level) {
         this.filterSustainLevel = Math.max(0.0, Math.min(1.0, level));
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setFilterEnvelopeSustainLevel(this.filterSustainLevel);
-        }
+        this.paramsDirty = true;
     }
 
     public void setFilterReleaseTime(double seconds) {
         this.filterReleaseTime = Math.max(0.0, seconds);
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setFilterEnvelopeReleaseTime(this.filterReleaseTime);
-        }
+        this.paramsDirty = true;
     }
 
     public void setAmpAttackTime(double seconds) {
         this.ampAttackTime = Math.max(0.0, seconds);
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setAmpEnvelopeAttackTime(this.ampAttackTime);
-        }
+        this.paramsDirty = true;
     }
 
     public void setAmpDecayTime(double seconds) {
         this.ampDecayTime = Math.max(0.0, seconds);
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setAmpEnvelopeDecayTime(this.ampDecayTime);
-        }
+        this.paramsDirty = true;
     }
 
     public void setAmpSustainLevel(double level) {
         this.ampSustainLevel = Math.max(0.0, Math.min(1.0, level));
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setAmpEnvelopeSustainLevel(this.ampSustainLevel);
-        }
+        this.paramsDirty = true;
     }
 
     public void setAmpReleaseTime(double seconds) {
         this.ampReleaseTime = Math.max(0.0, seconds);
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setAmpEnvelopeReleaseTime(this.ampReleaseTime);
-        }
+        this.paramsDirty = true;
     }
 
     public void setPreFilterGainDB(double db) {
         this.preFilterGainDB = db;
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
-        }
+        this.paramsDirty = true;
     }
 
     public void setPostFilterGainDB(double db) {
         this.postFilterGainDB = db;
-        for (int i = 0; i < voices.length; i++) {
-            voices[i].setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
-        }
+        this.paramsDirty = true;
     }
 
     public void setLFOFrequency(double frequency) {
         this.LFOFrequency = Math.max(0.0, frequency);
-        this.LFO.setFrequency(this.LFOFrequency);
     }
 
     public void setPanDepth(double depth) {
         this.panDepth = Math.max(0.0, Math.min(1.0, depth));
+        this.paramsDirty = true;
     }
 
     public void setMasterVolume(double volumeScalar){
@@ -448,18 +416,37 @@ public class Synthesiser{
         // Clear the output buffer
         Arrays.fill(stereoOutputBuffer, 0.0);
 
+        // Sync LFO settings from volatile fields (audio thread is sole consumer of LFO object)
+        switch (this.LFOWaveForm) {
+            case SINE -> this.LFO = this.sineLFO;
+            case SAW -> this.LFO = this.sawLFO;
+            case TRIANGLE -> this.LFO = this.triangleLFO;
+            case SQUARE -> this.LFO = this.squareLFO;
+        }
+        this.LFO.setFrequency(this.LFOFrequency);
+
         // Populate LFO buffer
         LFO.processBlock(null, this.lfoOutputBuffer, blockSize);
 
+        double vol = this.volumeAttenuation;
+
         // Voice Processing and Mixing
         synchronized (voices) {
+            // Pull model: sync parameters to voices when any setter has fired
+            if (this.paramsDirty) {
+                this.paramsDirty = false;
+                for (int i = 0; i < voices.length; i++) {
+                    setVoiceParams(voices[i]);
+                }
+            }
+
             for (int i = 0; i < voices.length; i++) {
                 Voice voice = voices[i];
                 if (voice.isActive()) {
                     // If the voice is active, process its block and sum it into the output buffer.
                     voice.processBlock(null, this.voiceOutputBuffer, this.blockSize);
                     for(int j = 0; j < this.blockSize * 2; j++){
-                        stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * this.volumeAttenuation;
+                        stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * vol;
                         this.LFOPosition = lfoOutputBuffer[j/2];
                     }
                 }
@@ -487,21 +474,40 @@ public class Synthesiser{
         timings.clear();
         Arrays.fill(stereoOutputBuffer, 0.0);
 
+        // Sync LFO settings from volatile fields (audio thread is sole consumer of LFO object)
+        switch (this.LFOWaveForm) {
+            case SINE -> this.LFO = this.sineLFO;
+            case SAW -> this.LFO = this.sawLFO;
+            case TRIANGLE -> this.LFO = this.triangleLFO;
+            case SQUARE -> this.LFO = this.squareLFO;
+        }
+        this.LFO.setFrequency(this.LFOFrequency);
+
         // Populate LFO buffer
         startTime = System.nanoTime();
         LFO.processBlock(null, this.lfoOutputBuffer, blockSize);
         endTime = System.nanoTime();
         timings.merge("LFO", endTime - startTime, Long::sum);
 
+        double vol = this.volumeAttenuation;
+
         // Voice Processing and Mixing
         startTime = System.nanoTime();
         synchronized (voices) {
+            // Pull model: sync parameters to voices when any setter has fired
+            if (this.paramsDirty) {
+                this.paramsDirty = false;
+                for (int i = 0; i < voices.length; i++) {
+                    setVoiceParams(voices[i]);
+                }
+            }
+
             for (int i = 0; i < voices.length; i++) {
                 Voice voice = voices[i];
                 if (voice.isActive()) {
                     voice.processBlockInstrumented(this.lfoOutputBuffer, this.voiceOutputBuffer, this.blockSize, timings);
                     for(int j = 0; j < this.blockSize * 2; j++){
-                        stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * this.volumeAttenuation;
+                        stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * vol;
                         this.LFOPosition = lfoOutputBuffer[j/2];
                     }
                 }
