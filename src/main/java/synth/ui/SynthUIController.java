@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -14,14 +16,11 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ChoiceBox;
-import javafx.util.Duration;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.VBox;
@@ -114,7 +113,7 @@ public class SynthUIController implements Initializable {
     @FXML private Slider postFilterGainSlider;
     @FXML private Label postFilterGainLabel;
     
-    private Timeline deviceScanTimeline;
+    private ScheduledExecutorService deviceScanExecutor;
 
     // Flag to prevent redundant synth calls when syncing UI from MIDI CC
     private boolean syncingFromMidi = false;
@@ -138,9 +137,13 @@ public class SynthUIController implements Initializable {
         setupControls();
         syncUIWithSynthSettings();
 
-        deviceScanTimeline = new Timeline(new KeyFrame(Duration.seconds(AudioConstants.DEVICE_SCAN_INTERVAL_SECONDS), e -> refreshDeviceLists()));
-        deviceScanTimeline.setCycleCount(Timeline.INDEFINITE);
-        deviceScanTimeline.play();
+        deviceScanExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "device-scan");
+            t.setDaemon(true);
+            return t;
+        });
+        long intervalMs = (long) (AudioConstants.DEVICE_SCAN_INTERVAL_SECONDS * 1000);
+        deviceScanExecutor.scheduleAtFixedRate(this::refreshDeviceLists, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -176,22 +179,25 @@ public class SynthUIController implements Initializable {
 
     private void refreshDeviceLists() {
         ArrayList<String> newMidi = MidiDeviceConnector.getMidiDevicesList();
-        if (!newMidi.equals(new ArrayList<>(midiDeviceChoiceBox.getItems()))) {
-            String selected = midiDeviceChoiceBox.getValue();
-            midiDeviceChoiceBox.setItems(FXCollections.observableArrayList(newMidi));
-            if (newMidi.contains(selected)) {
-                midiDeviceChoiceBox.setValue(selected);
-            }
-        }
-
         ArrayList<String> newAudio = AudioDeviceConnector.getAudioOutputDeviceList();
-        if (!newAudio.equals(new ArrayList<>(audioDeviceChoiceBox.getItems()))) {
-            String selected = audioDeviceChoiceBox.getValue();
-            audioDeviceChoiceBox.setItems(FXCollections.observableArrayList(newAudio));
-            if (newAudio.contains(selected)) {
-                audioDeviceChoiceBox.setValue(selected);
+
+        Platform.runLater(() -> {
+            if (!newMidi.equals(new ArrayList<>(midiDeviceChoiceBox.getItems()))) {
+                String selected = midiDeviceChoiceBox.getValue();
+                midiDeviceChoiceBox.setItems(FXCollections.observableArrayList(newMidi));
+                if (newMidi.contains(selected)) {
+                    midiDeviceChoiceBox.setValue(selected);
+                }
             }
-        }
+
+            if (!newAudio.equals(new ArrayList<>(audioDeviceChoiceBox.getItems()))) {
+                String selected = audioDeviceChoiceBox.getValue();
+                audioDeviceChoiceBox.setItems(FXCollections.observableArrayList(newAudio));
+                if (newAudio.contains(selected)) {
+                    audioDeviceChoiceBox.setValue(selected);
+                }
+            }
+        });
     }
 
     /**
@@ -653,8 +659,8 @@ public class SynthUIController implements Initializable {
      * Safely closes audio and MIDI resources when the application exits.
      */
     public void shutdown() {
-        if (deviceScanTimeline != null) {
-            deviceScanTimeline.stop();
+        if (deviceScanExecutor != null) {
+            deviceScanExecutor.shutdownNow();
         }
 
         // Stop the audio thread
