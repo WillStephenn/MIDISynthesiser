@@ -1,10 +1,15 @@
 package synth.core;
 
-import synth.components.oscillators.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import synth.components.oscillators.Oscillator;
+import synth.components.oscillators.SawOscillator;
+import synth.components.oscillators.SineOscillator;
+import synth.components.oscillators.SquareOscillator;
+import synth.components.oscillators.TriangleOscillator;
 
 /**
  * The main synthesiser class that manages and processes multiple voices.
@@ -169,7 +174,8 @@ public class Synthesiser{
     }
 
     public void setFilterCutoff(double cutoff) {
-        double maxCutoff = (this.sampleRate / 2.0) - 1.0;
+        double nyquistLimit = (this.sampleRate / 2.0) - 1.0;
+        double maxCutoff = Math.nextDown(nyquistLimit);
         this.filterCutoff = Math.max(20.0, Math.min(maxCutoff, cutoff));
         this.filterDirty.set(true);
     }
