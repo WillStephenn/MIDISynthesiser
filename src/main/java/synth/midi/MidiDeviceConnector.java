@@ -41,6 +41,9 @@ public class MidiDeviceConnector {
                     i ++;
                 }
             } catch (MidiUnavailableException e) {
+                if (verbose) {
+                    System.err.println("Skipping MIDI device '" + info.getName() + "': " + e.getMessage());
+                }
             }
         }
         if (verbose) System.out.println("------------------------------------");
