@@ -51,7 +51,7 @@ public class Synthesiser{
     private final Oscillator squareLFO;
     private volatile Waveform LFOWaveForm;
     private volatile double LFOFrequency;
-    private double LFOPosition;
+    private volatile double LFOPosition;
 
     // Panning
     private volatile double panDepth;
