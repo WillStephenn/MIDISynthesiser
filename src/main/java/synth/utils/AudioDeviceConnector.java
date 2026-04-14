@@ -11,8 +11,9 @@ import java.util.Scanner;
 public class AudioDeviceConnector {
 
     /**
-     * Lists all available audio output devices to the console.
+     * Returns all available audio output device names.
      * An output device is a mixer that can provide a SourceDataLine.
+     * Equivalent to {@code getAudioOutputDeviceList(false)} (no console output).
      * @return An ArrayList of strings, where each string is the name of an available device.
      */
     public static ArrayList<String> getAudioOutputDeviceList() {
