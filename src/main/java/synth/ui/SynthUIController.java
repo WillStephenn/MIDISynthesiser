@@ -135,7 +135,12 @@ public class SynthUIController implements Initializable {
 
         setupDeviceSelectors();
         setupControls();
-        syncUIWithSynthSettings();
+        syncingFromMidi = true;
+        try {
+            syncUIWithSynthSettings();
+        } finally {
+            syncingFromMidi = false;
+        }
 
         deviceScanExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "device-scan");
@@ -184,7 +189,7 @@ public class SynthUIController implements Initializable {
         Platform.runLater(() -> {
             if (!newMidi.equals(new ArrayList<>(midiDeviceChoiceBox.getItems()))) {
                 String selected = midiDeviceChoiceBox.getValue();
-                midiDeviceChoiceBox.setItems(FXCollections.observableArrayList(newMidi));
+                midiDeviceChoiceBox.getItems().setAll(newMidi);
                 if (newMidi.contains(selected)) {
                     midiDeviceChoiceBox.setValue(selected);
                 }
@@ -192,7 +197,7 @@ public class SynthUIController implements Initializable {
 
             if (!newAudio.equals(new ArrayList<>(audioDeviceChoiceBox.getItems()))) {
                 String selected = audioDeviceChoiceBox.getValue();
-                audioDeviceChoiceBox.setItems(FXCollections.observableArrayList(newAudio));
+                audioDeviceChoiceBox.getItems().setAll(newAudio);
                 if (newAudio.contains(selected)) {
                     audioDeviceChoiceBox.setValue(selected);
                 }
