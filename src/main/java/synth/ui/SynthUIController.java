@@ -114,9 +114,6 @@ public class SynthUIController implements Initializable {
     @FXML private Slider postFilterGainSlider;
     @FXML private Label postFilterGainLabel;
     
-    // Track master volume since synth doesn't have a getter
-    private double currentMasterVolume = 1.0;
-    
     private Timeline deviceScanTimeline;
 
     // Flag to prevent redundant synth calls when syncing UI from MIDI CC
@@ -400,7 +397,6 @@ public class SynthUIController implements Initializable {
     private void setupGlobalControls() {
         masterVolumeSlider.valueProperty().addListener((obs, o, n) -> {
             double volume = n.doubleValue();
-            currentMasterVolume = volume;
             if (!syncingFromMidi) synth.setMasterVolume(volume);
             masterVolumeLabel.setText(percentFormat.format(volume * 100) + "%");
         });
@@ -466,7 +462,6 @@ public class SynthUIController implements Initializable {
         
         // Global Control settings
         masterVolumeSlider.setValue(synth.getMasterVolumeScalar());
-        currentMasterVolume = synth.getMasterVolumeScalar();
         panDepthSlider.setValue(synth.getPanDepth());
         preFilterGainSlider.setValue(synth.getPreFilterGainDB());
         postFilterGainSlider.setValue(synth.getPostFilterGainDB());
