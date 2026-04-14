@@ -564,16 +564,18 @@ public class SynthUIController implements Initializable {
     /**
      * Called from the MIDI thread when a CC message is processed.
      * Schedules a coalesced UI sync on the JavaFX application thread.
+     * Clearing the pending flag at the start of execution allows CCs arriving
+     * during sync to schedule a fresh runLater, preventing stale UI state.
      */
     private void onMidiControlChange() {
         if (midiSyncPending.compareAndSet(false, true)) {
             Platform.runLater(() -> {
+                midiSyncPending.set(false);
                 syncingFromMidi = true;
                 try {
                     syncUIWithSynthSettings();
                 } finally {
                     syncingFromMidi = false;
-                    midiSyncPending.set(false);
                 }
             });
         }
