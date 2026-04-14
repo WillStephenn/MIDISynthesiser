@@ -16,27 +16,28 @@ public class AudioDeviceConnector {
      * @return An ArrayList of strings, where each string is the name of an available device.
      */
     public static ArrayList<String> getAudioOutputDeviceList() {
+        return getAudioOutputDeviceList(false);
+    }
+
+    public static ArrayList<String> getAudioOutputDeviceList(boolean verbose) {
         ArrayList<String> devices = new ArrayList<>();
-        System.out.println("--- Select Audio Output Device ---");
+        if (verbose) System.out.println("--- Select Audio Output Device ---");
         int i = 1;
         for (Mixer.Info info : AudioSystem.getMixerInfo()) {
-            // Filter to skip devices starting with "Port "
             if (info.getName().startsWith("Port ")) {
                 continue;
             }
             try {
                 Mixer mixer = AudioSystem.getMixer(info);
-                // Check if the mixer supports output (SourceDataLine)
                 if (mixer.getSourceLineInfo().length > 0) {
                     devices.add(info.getName());
-                    System.out.println(i + "- " + info.getName());
+                    if (verbose) System.out.println(i + "- " + info.getName());
                     i++;
                 }
             } catch (Exception e) {
-                // Ignore devices that can't be accessed
             }
         }
-        System.out.println("------------------------------------");
+        if (verbose) System.out.println("------------------------------------");
         return devices;
     }
 
@@ -46,7 +47,7 @@ public class AudioDeviceConnector {
      * @return The name of the selected audio device, or null if none are found.
      */
     public static String promptUser() {
-        ArrayList<String> devices = getAudioOutputDeviceList();
+        ArrayList<String> devices = getAudioOutputDeviceList(true);
         if (devices.isEmpty()) {
             System.out.println("No audio output devices available.");
             return null;

@@ -19,12 +19,16 @@ public class MidiDeviceConnector {
      * An input device is one that can send MIDI messages (has at least one transmitter).
      */
     public static ArrayList<String> getMidiDevicesList() {
+        return getMidiDevicesList(false);
+    }
+
+    public static ArrayList<String> getMidiDevicesList(boolean verbose) {
         ArrayList<String> Devices = new ArrayList<>();
-        System.out.println("--- Select MIDI Input Device ---");
+        if (verbose) System.out.println("--- Select MIDI Input Device ---");
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
         if (infos.length == 0) {
-            System.out.println("No MIDI devices found.");
-            return null;
+            if (verbose) System.out.println("No MIDI devices found.");
+            return Devices;
         }
         int i = 1;
         for (MidiDevice.Info info : infos) {
@@ -32,13 +36,13 @@ public class MidiDeviceConnector {
                 MidiDevice device = MidiSystem.getMidiDevice(info);
                 if (device.getMaxTransmitters() != 0) {
                     Devices.add(info.getName());
-                    System.out.println(i + "- " + info.getName());
+                    if (verbose) System.out.println(i + "- " + info.getName());
                     i ++;
                 }
             } catch (MidiUnavailableException e) {
             }
         }
-        System.out.println("------------------------------------");
+        if (verbose) System.out.println("------------------------------------");
         return Devices;
     }
 
@@ -48,7 +52,7 @@ public class MidiDeviceConnector {
      * @return The name of the selected MIDI device, or null if none are found.
      */
     public static String promptUser() {
-        ArrayList<String> devices = getMidiDevicesList();
+        ArrayList<String> devices = getMidiDevicesList(true);
         if (devices == null || devices.isEmpty()) {
             System.out.println("No MIDI devices available.");
             return null;

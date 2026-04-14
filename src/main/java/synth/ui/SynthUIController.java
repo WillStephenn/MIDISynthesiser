@@ -14,11 +14,14 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ChoiceBox;
+import javafx.util.Duration;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.VBox;
@@ -114,6 +117,8 @@ public class SynthUIController implements Initializable {
     // Track master volume since synth doesn't have a getter
     private double currentMasterVolume = 1.0;
     
+    private Timeline deviceScanTimeline;
+
     // Flag to prevent redundant synth calls when syncing UI from MIDI CC
     private boolean syncingFromMidi = false;
     // Coalescing flag for MIDI CC UI sync
@@ -135,6 +140,10 @@ public class SynthUIController implements Initializable {
         setupDeviceSelectors();
         setupControls();
         syncUIWithSynthSettings();
+
+        deviceScanTimeline = new Timeline(new KeyFrame(Duration.seconds(AudioConstants.DEVICE_SCAN_INTERVAL_SECONDS), e -> refreshDeviceLists()));
+        deviceScanTimeline.setCycleCount(Timeline.INDEFINITE);
+        deviceScanTimeline.play();
     }
 
     /**
@@ -142,7 +151,7 @@ public class SynthUIController implements Initializable {
      */
     private void setupDeviceSelectors() {
         // Audio Devices
-        ArrayList<String> audioDevices = AudioDeviceConnector.getAudioOutputDeviceList();
+        ArrayList<String> audioDevices = AudioDeviceConnector.getAudioOutputDeviceList(true);
         audioDeviceChoiceBox.setItems(FXCollections.observableArrayList(audioDevices));
         audioDeviceChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldDevice, newDevice) -> {
             if (newDevice != null) {
@@ -151,7 +160,7 @@ public class SynthUIController implements Initializable {
         });
 
         // MIDI Devices
-        ArrayList<String> midiDevices = MidiDeviceConnector.getMidiDevicesList();
+        ArrayList<String> midiDevices = MidiDeviceConnector.getMidiDevicesList(true);
         midiDeviceChoiceBox.setItems(FXCollections.observableArrayList(midiDevices));
         midiDeviceChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldDevice, newDevice) -> {
             if (newDevice != null) {
@@ -165,6 +174,26 @@ public class SynthUIController implements Initializable {
         }
         if (!midiDevices.isEmpty()) {
             midiDeviceChoiceBox.getSelectionModel().selectFirst();
+        }
+    }
+
+    private void refreshDeviceLists() {
+        ArrayList<String> newMidi = MidiDeviceConnector.getMidiDevicesList();
+        if (!newMidi.equals(new ArrayList<>(midiDeviceChoiceBox.getItems()))) {
+            String selected = midiDeviceChoiceBox.getValue();
+            midiDeviceChoiceBox.setItems(FXCollections.observableArrayList(newMidi));
+            if (newMidi.contains(selected)) {
+                midiDeviceChoiceBox.setValue(selected);
+            }
+        }
+
+        ArrayList<String> newAudio = AudioDeviceConnector.getAudioOutputDeviceList();
+        if (!newAudio.equals(new ArrayList<>(audioDeviceChoiceBox.getItems()))) {
+            String selected = audioDeviceChoiceBox.getValue();
+            audioDeviceChoiceBox.setItems(FXCollections.observableArrayList(newAudio));
+            if (newAudio.contains(selected)) {
+                audioDeviceChoiceBox.setValue(selected);
+            }
         }
     }
 
@@ -628,6 +657,10 @@ public class SynthUIController implements Initializable {
      * Safely closes audio and MIDI resources when the application exits.
      */
     public void shutdown() {
+        if (deviceScanTimeline != null) {
+            deviceScanTimeline.stop();
+        }
+
         // Stop the audio thread
         if (audioThread != null && audioThread.isAlive()) {
             audioThreadRunning = false;
