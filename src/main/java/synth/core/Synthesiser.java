@@ -85,6 +85,9 @@ public class Synthesiser{
         if (noVoices <= 0) {
             throw new IllegalArgumentException("Number of voices must be positive.");
         }
+        if (sampleRate <= 40.0) {
+            throw new IllegalArgumentException("Sample rate must be greater than 40 Hz.");
+        }
         this.sampleRate = sampleRate;
         this.voiceSumAttenuation = 1.0 / Math.sqrt(noVoices);
         this.volumeAttenuation = this.voiceSumAttenuation;
@@ -192,7 +195,9 @@ public class Synthesiser{
     }
 
     public void setFilterModRange(double modRange) {
-        double clamped = Math.max(0.0, modRange);
+        double nyquistLimit = (this.sampleRate / 2.0) - 1.0;
+        double maxModRange = Math.max(0.0, Math.nextDown(nyquistLimit) - this.filterCutoff);
+        double clamped = Math.max(0.0, Math.min(modRange, maxModRange));
         if (Double.compare(this.filterModRange, clamped) != 0) {
             this.filterModRange = clamped;
             this.filterDirty.set(true);
@@ -476,13 +481,10 @@ public class Synthesiser{
     }
 
     /**
-     * Processes one block of audio samples for all active voices.
+     * Syncs LFO oscillator selection and frequency from volatile fields.
+     * Must only be called from the audio thread.
      */
-    public void processBlock(double[] stereoOutputBuffer){
-        // Clear the output buffer
-        Arrays.fill(stereoOutputBuffer, 0.0);
-
-        // Sync LFO settings from volatile fields (audio thread is sole consumer of LFO object)
+    private void syncLfo() {
         switch (this.LFOWaveForm) {
             case SINE -> this.LFO = this.sineLFO;
             case SAW -> this.LFO = this.sawLFO;
@@ -490,6 +492,47 @@ public class Synthesiser{
             case SQUARE -> this.LFO = this.squareLFO;
         }
         this.LFO.setFrequency(this.LFOFrequency);
+    }
+
+    /**
+     * Atomically reads and clears dirty flags, then applies changed parameter
+     * groups to all voices. Must be called while holding the voices lock.
+     */
+    private void syncDirtyParamsToVoices() {
+        boolean wf = this.waveformDirty.getAndSet(false);
+        boolean fi = this.filterDirty.getAndSet(false);
+        boolean fe = this.filterEnvDirty.getAndSet(false);
+        boolean ae = this.ampEnvDirty.getAndSet(false);
+        boolean ga = this.gainDirty.getAndSet(false);
+        boolean pa = this.panDirty.getAndSet(false);
+
+        if (wf || fi || fe || ae || ga || pa) {
+            Waveform wfSnap = wf ? this.waveform : null;
+            double fcSnap = this.filterCutoff, frSnap = this.filterResonance, fmrSnap = this.filterModRange;
+            double faSnap = this.filterAttackTime, fdSnap = this.filterDecayTime, fsSnap = this.filterSustainLevel, frTSnap = this.filterReleaseTime;
+            double aaSnap = this.ampAttackTime, adSnap = this.ampDecayTime, asSnap = this.ampSustainLevel, arSnap = this.ampReleaseTime;
+            double pfgSnap = this.preFilterGainDB, pfgPostSnap = this.postFilterGainDB;
+            double pdSnap = this.panDepth;
+
+            for (int i = 0; i < voices.length; i++) {
+                if (wf) voices[i].setOscillatorWaveform(wfSnap);
+                if (fi) voices[i].setFilterParameters(fcSnap, frSnap, fmrSnap);
+                if (fe) voices[i].setFilterEnvelope(faSnap, fdSnap, fsSnap, frTSnap);
+                if (ae) voices[i].setAmpEnvelope(aaSnap, adSnap, asSnap, arSnap);
+                if (ga) voices[i].setFilterGainStaging(pfgSnap, pfgPostSnap);
+                if (pa) voices[i].setPanDepth(pdSnap);
+            }
+        }
+    }
+
+    /**
+     * Processes one block of audio samples for all active voices.
+     */
+    public void processBlock(double[] stereoOutputBuffer){
+        // Clear the output buffer
+        Arrays.fill(stereoOutputBuffer, 0.0);
+
+        syncLfo();
 
         // Populate LFO buffer
         LFO.processBlock(null, this.lfoOutputBuffer, blockSize);
@@ -498,32 +541,7 @@ public class Synthesiser{
 
         // Voice Processing and Mixing
         synchronized (voices) {
-            // Pull model: sync only dirty parameter groups to voices (atomic read+clear)
-            boolean wf = this.waveformDirty.getAndSet(false);
-            boolean fi = this.filterDirty.getAndSet(false);
-            boolean fe = this.filterEnvDirty.getAndSet(false);
-            boolean ae = this.ampEnvDirty.getAndSet(false);
-            boolean ga = this.gainDirty.getAndSet(false);
-            boolean pa = this.panDirty.getAndSet(false);
-
-            if (wf || fi || fe || ae || ga || pa) {
-                // Snapshot volatile fields into locals for consistent per-block updates
-                Waveform wfSnap = wf ? this.waveform : null;
-                double fcSnap = this.filterCutoff, frSnap = this.filterResonance, fmrSnap = this.filterModRange;
-                double faSnap = this.filterAttackTime, fdSnap = this.filterDecayTime, fsSnap = this.filterSustainLevel, frTSnap = this.filterReleaseTime;
-                double aaSnap = this.ampAttackTime, adSnap = this.ampDecayTime, asSnap = this.ampSustainLevel, arSnap = this.ampReleaseTime;
-                double pfgSnap = this.preFilterGainDB, pfgPostSnap = this.postFilterGainDB;
-                double pdSnap = this.panDepth;
-
-                for (int i = 0; i < voices.length; i++) {
-                    if (wf) voices[i].setOscillatorWaveform(wfSnap);
-                    if (fi) voices[i].setFilterParameters(fcSnap, frSnap, fmrSnap);
-                    if (fe) voices[i].setFilterEnvelope(faSnap, fdSnap, fsSnap, frTSnap);
-                    if (ae) voices[i].setAmpEnvelope(aaSnap, adSnap, asSnap, arSnap);
-                    if (ga) voices[i].setFilterGainStaging(pfgSnap, pfgPostSnap);
-                    if (pa) voices[i].setPanDepth(pdSnap);
-                }
-            }
+            syncDirtyParamsToVoices();
 
             for (int i = 0; i < voices.length; i++) {
                 Voice voice = voices[i];
@@ -561,14 +579,7 @@ public class Synthesiser{
         timings.clear();
         Arrays.fill(stereoOutputBuffer, 0.0);
 
-        // Sync LFO settings from volatile fields (audio thread is sole consumer of LFO object)
-        switch (this.LFOWaveForm) {
-            case SINE -> this.LFO = this.sineLFO;
-            case SAW -> this.LFO = this.sawLFO;
-            case TRIANGLE -> this.LFO = this.triangleLFO;
-            case SQUARE -> this.LFO = this.squareLFO;
-        }
-        this.LFO.setFrequency(this.LFOFrequency);
+        syncLfo();
 
         // Populate LFO buffer
         startTime = System.nanoTime();
@@ -581,32 +592,7 @@ public class Synthesiser{
         // Voice Processing and Mixing
         startTime = System.nanoTime();
         synchronized (voices) {
-            // Pull model: sync only dirty parameter groups to voices (atomic read+clear)
-            boolean wf = this.waveformDirty.getAndSet(false);
-            boolean fi = this.filterDirty.getAndSet(false);
-            boolean fe = this.filterEnvDirty.getAndSet(false);
-            boolean ae = this.ampEnvDirty.getAndSet(false);
-            boolean ga = this.gainDirty.getAndSet(false);
-            boolean pa = this.panDirty.getAndSet(false);
-
-            if (wf || fi || fe || ae || ga || pa) {
-                // Snapshot volatile fields into locals for consistent per-block updates
-                Waveform wfSnap = wf ? this.waveform : null;
-                double fcSnap = this.filterCutoff, frSnap = this.filterResonance, fmrSnap = this.filterModRange;
-                double faSnap = this.filterAttackTime, fdSnap = this.filterDecayTime, fsSnap = this.filterSustainLevel, frTSnap = this.filterReleaseTime;
-                double aaSnap = this.ampAttackTime, adSnap = this.ampDecayTime, asSnap = this.ampSustainLevel, arSnap = this.ampReleaseTime;
-                double pfgSnap = this.preFilterGainDB, pfgPostSnap = this.postFilterGainDB;
-                double pdSnap = this.panDepth;
-
-                for (int i = 0; i < voices.length; i++) {
-                    if (wf) voices[i].setOscillatorWaveform(wfSnap);
-                    if (fi) voices[i].setFilterParameters(fcSnap, frSnap, fmrSnap);
-                    if (fe) voices[i].setFilterEnvelope(faSnap, fdSnap, fsSnap, frTSnap);
-                    if (ae) voices[i].setAmpEnvelope(aaSnap, adSnap, asSnap, arSnap);
-                    if (ga) voices[i].setFilterGainStaging(pfgSnap, pfgPostSnap);
-                    if (pa) voices[i].setPanDepth(pdSnap);
-                }
-            }
+            syncDirtyParamsToVoices();
 
             for (int i = 0; i < voices.length; i++) {
                 Voice voice = voices[i];
