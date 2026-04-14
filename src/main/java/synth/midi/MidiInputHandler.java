@@ -62,6 +62,7 @@ public class MidiInputHandler implements Receiver{
                 double scaledValue = value / 127.0;
 
                 // Parameter control switch:
+                boolean handled = true;
                 switch (controller) {
                     // --- OSCILLATOR CONTROLS ---
                     case 32: // Modulation Wheel, LFO Frequency
@@ -149,9 +150,12 @@ public class MidiInputHandler implements Receiver{
                     case 16: // Pan Depth
                         synth.setPanDepth(scaledValue);
                         break;
+                    default:
+                        handled = false;
+                        break;
                 }
 
-                if (onControlChange != null) {
+                if (handled && onControlChange != null) {
                     onControlChange.run();
                 }
             }
