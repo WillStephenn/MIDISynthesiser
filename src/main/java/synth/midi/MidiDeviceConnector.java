@@ -53,7 +53,7 @@ public class MidiDeviceConnector {
      */
     public static String promptUser() {
         ArrayList<String> devices = getMidiDevicesList(true);
-        if (devices == null || devices.isEmpty()) {
+        if (devices.isEmpty()) {
             System.out.println("No MIDI devices available.");
             return null;
         }
