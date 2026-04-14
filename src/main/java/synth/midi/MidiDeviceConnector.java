@@ -15,8 +15,9 @@ import synth.core.Synthesiser;
 public class MidiDeviceConnector {
 
     /**
-     * Lists all available MIDI input devices to the console.
+     * Returns all available MIDI input device names.
      * An input device is one that can send MIDI messages (has at least one transmitter).
+     * Equivalent to {@code getMidiDevicesList(false)} (no console output).
      */
     public static ArrayList<String> getMidiDevicesList() {
         return getMidiDevicesList(false);
