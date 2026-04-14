@@ -36,6 +36,9 @@ public class AudioDeviceConnector {
                     i++;
                 }
             } catch (Exception e) {
+                if (verbose) {
+                    System.err.println("Skipping audio device '" + info.getName() + "': " + e.getMessage());
+                }
             }
         }
         if (verbose) System.out.println("------------------------------------");
