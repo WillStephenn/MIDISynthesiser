@@ -113,6 +113,16 @@ public class PerformanceTest {
         }
 
         running.set(false);
+        setterThread.interrupt();
+        try {
+            setterThread.join(TimeUnit.SECONDS.toMillis(2));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Interrupted while waiting for setter thread to stop.");
+        }
+        if (setterThread.isAlive()) {
+            System.err.println("Setter thread did not stop within the timeout.");
+        }
         System.out.println("Contention test complete.\n");
 
         // Print results
