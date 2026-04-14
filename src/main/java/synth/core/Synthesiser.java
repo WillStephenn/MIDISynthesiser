@@ -4,6 +4,7 @@ import synth.components.oscillators.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The main synthesiser class that manages and processes multiple voices.
@@ -59,12 +60,12 @@ public class Synthesiser{
     private volatile double panDepth;
 
     // Granular dirty flags: setters set per-group flag, audio thread clears after syncing to voices
-    private volatile boolean waveformDirty = false;
-    private volatile boolean filterDirty = false;
-    private volatile boolean filterEnvDirty = false;
-    private volatile boolean ampEnvDirty = false;
-    private volatile boolean gainDirty = false;
-    private volatile boolean panDirty = false;
+    private final AtomicBoolean waveformDirty = new AtomicBoolean(false);
+    private final AtomicBoolean filterDirty = new AtomicBoolean(false);
+    private final AtomicBoolean filterEnvDirty = new AtomicBoolean(false);
+    private final AtomicBoolean ampEnvDirty = new AtomicBoolean(false);
+    private final AtomicBoolean gainDirty = new AtomicBoolean(false);
+    private final AtomicBoolean panDirty = new AtomicBoolean(false);
 
     // Output Buffers
     int blockSize;
@@ -149,9 +150,12 @@ public class Synthesiser{
      * @param waveform The new waveform to use.
      */
     public void setOscillatorWaveform(Waveform waveform){
+        if (waveform == null) {
+            throw new IllegalArgumentException("waveform cannot be null");
+        }
         if (this.waveform != waveform){
             this.waveform = waveform;
-            this.waveformDirty = true;
+            this.waveformDirty.set(true);
         }
     }
 
@@ -167,67 +171,67 @@ public class Synthesiser{
     public void setFilterCutoff(double cutoff) {
         double maxCutoff = (this.sampleRate / 2.0) - 1.0;
         this.filterCutoff = Math.max(20.0, Math.min(maxCutoff, cutoff));
-        this.filterDirty = true;
+        this.filterDirty.set(true);
     }
 
     public void setFilterResonance(double resonance) {
         this.filterResonance = Math.max(1.0, Math.min(20.0, resonance)); // Clamp from 1 to 20
-        this.filterDirty = true;
+        this.filterDirty.set(true);
     }
 
     public void setFilterModRange(double modRange) {
         this.filterModRange = Math.max(0.0, modRange);
-        this.filterDirty = true;
+        this.filterDirty.set(true);
     }
 
     public void setFilterAttackTime(double seconds) {
         this.filterAttackTime = Math.max(0.0, seconds);
-        this.filterEnvDirty = true;
+        this.filterEnvDirty.set(true);
     }
 
     public void setFilterDecayTime(double seconds) {
         this.filterDecayTime = Math.max(0.0, seconds);
-        this.filterEnvDirty = true;
+        this.filterEnvDirty.set(true);
     }
 
     public void setFilterSustainLevel(double level) {
         this.filterSustainLevel = Math.max(0.0, Math.min(1.0, level));
-        this.filterEnvDirty = true;
+        this.filterEnvDirty.set(true);
     }
 
     public void setFilterReleaseTime(double seconds) {
         this.filterReleaseTime = Math.max(0.0, seconds);
-        this.filterEnvDirty = true;
+        this.filterEnvDirty.set(true);
     }
 
     public void setAmpAttackTime(double seconds) {
         this.ampAttackTime = Math.max(0.0, seconds);
-        this.ampEnvDirty = true;
+        this.ampEnvDirty.set(true);
     }
 
     public void setAmpDecayTime(double seconds) {
         this.ampDecayTime = Math.max(0.0, seconds);
-        this.ampEnvDirty = true;
+        this.ampEnvDirty.set(true);
     }
 
     public void setAmpSustainLevel(double level) {
         this.ampSustainLevel = Math.max(0.0, Math.min(1.0, level));
-        this.ampEnvDirty = true;
+        this.ampEnvDirty.set(true);
     }
 
     public void setAmpReleaseTime(double seconds) {
         this.ampReleaseTime = Math.max(0.0, seconds);
-        this.ampEnvDirty = true;
+        this.ampEnvDirty.set(true);
     }
 
     public void setPreFilterGainDB(double db) {
         this.preFilterGainDB = db;
-        this.gainDirty = true;
+        this.gainDirty.set(true);
     }
 
     public void setPostFilterGainDB(double db) {
         this.postFilterGainDB = db;
-        this.gainDirty = true;
+        this.gainDirty.set(true);
     }
 
     public void setLFOFrequency(double frequency) {
@@ -236,7 +240,7 @@ public class Synthesiser{
 
     public void setPanDepth(double depth) {
         this.panDepth = Math.max(0.0, Math.min(1.0, depth));
-        this.panDirty = true;
+        this.panDirty.set(true);
     }
 
     public void setMasterVolume(double volumeScalar){
@@ -446,13 +450,13 @@ public class Synthesiser{
 
         // Voice Processing and Mixing
         synchronized (voices) {
-            // Pull model: sync only dirty parameter groups to voices
-            boolean wf = this.waveformDirty;
-            boolean fi = this.filterDirty;
-            boolean fe = this.filterEnvDirty;
-            boolean ae = this.ampEnvDirty;
-            boolean ga = this.gainDirty;
-            boolean pa = this.panDirty;
+            // Pull model: sync only dirty parameter groups to voices (atomic read+clear)
+            boolean wf = this.waveformDirty.getAndSet(false);
+            boolean fi = this.filterDirty.getAndSet(false);
+            boolean fe = this.filterEnvDirty.getAndSet(false);
+            boolean ae = this.ampEnvDirty.getAndSet(false);
+            boolean ga = this.gainDirty.getAndSet(false);
+            boolean pa = this.panDirty.getAndSet(false);
 
             if (wf || fi || fe || ae || ga || pa) {
                 // Snapshot volatile fields into locals for consistent per-block updates
@@ -462,13 +466,6 @@ public class Synthesiser{
                 double aaSnap = this.ampAttackTime, adSnap = this.ampDecayTime, asSnap = this.ampSustainLevel, arSnap = this.ampReleaseTime;
                 double pfgSnap = this.preFilterGainDB, pfgPostSnap = this.postFilterGainDB;
                 double pdSnap = this.panDepth;
-
-                if (wf) this.waveformDirty = false;
-                if (fi) this.filterDirty = false;
-                if (fe) this.filterEnvDirty = false;
-                if (ae) this.ampEnvDirty = false;
-                if (ga) this.gainDirty = false;
-                if (pa) this.panDirty = false;
 
                 for (int i = 0; i < voices.length; i++) {
                     if (wf) voices[i].setOscillatorWaveform(wfSnap);
@@ -536,13 +533,13 @@ public class Synthesiser{
         // Voice Processing and Mixing
         startTime = System.nanoTime();
         synchronized (voices) {
-            // Pull model: sync only dirty parameter groups to voices
-            boolean wf = this.waveformDirty;
-            boolean fi = this.filterDirty;
-            boolean fe = this.filterEnvDirty;
-            boolean ae = this.ampEnvDirty;
-            boolean ga = this.gainDirty;
-            boolean pa = this.panDirty;
+            // Pull model: sync only dirty parameter groups to voices (atomic read+clear)
+            boolean wf = this.waveformDirty.getAndSet(false);
+            boolean fi = this.filterDirty.getAndSet(false);
+            boolean fe = this.filterEnvDirty.getAndSet(false);
+            boolean ae = this.ampEnvDirty.getAndSet(false);
+            boolean ga = this.gainDirty.getAndSet(false);
+            boolean pa = this.panDirty.getAndSet(false);
 
             if (wf || fi || fe || ae || ga || pa) {
                 // Snapshot volatile fields into locals for consistent per-block updates
@@ -552,13 +549,6 @@ public class Synthesiser{
                 double aaSnap = this.ampAttackTime, adSnap = this.ampDecayTime, asSnap = this.ampSustainLevel, arSnap = this.ampReleaseTime;
                 double pfgSnap = this.preFilterGainDB, pfgPostSnap = this.postFilterGainDB;
                 double pdSnap = this.panDepth;
-
-                if (wf) this.waveformDirty = false;
-                if (fi) this.filterDirty = false;
-                if (fe) this.filterEnvDirty = false;
-                if (ae) this.ampEnvDirty = false;
-                if (ga) this.gainDirty = false;
-                if (pa) this.panDirty = false;
 
                 for (int i = 0; i < voices.length; i++) {
                     if (wf) voices[i].setOscillatorWaveform(wfSnap);
