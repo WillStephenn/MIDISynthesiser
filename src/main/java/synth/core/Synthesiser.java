@@ -176,68 +176,105 @@ public class Synthesiser{
     public void setFilterCutoff(double cutoff) {
         double nyquistLimit = (this.sampleRate / 2.0) - 1.0;
         double maxCutoff = Math.nextDown(nyquistLimit);
-        this.filterCutoff = Math.max(20.0, Math.min(maxCutoff, cutoff));
-        this.filterDirty.set(true);
+        double clamped = Math.max(20.0, Math.min(maxCutoff, cutoff));
+        if (Double.compare(this.filterCutoff, clamped) != 0) {
+            this.filterCutoff = clamped;
+            this.filterDirty.set(true);
+        }
     }
 
     public void setFilterResonance(double resonance) {
-        this.filterResonance = Math.max(1.0, Math.min(20.0, resonance)); // Clamp from 1 to 20
-        this.filterDirty.set(true);
+        double clamped = Math.max(1.0, Math.min(20.0, resonance));
+        if (Double.compare(this.filterResonance, clamped) != 0) {
+            this.filterResonance = clamped;
+            this.filterDirty.set(true);
+        }
     }
 
     public void setFilterModRange(double modRange) {
-        this.filterModRange = Math.max(0.0, modRange);
-        this.filterDirty.set(true);
+        double clamped = Math.max(0.0, modRange);
+        if (Double.compare(this.filterModRange, clamped) != 0) {
+            this.filterModRange = clamped;
+            this.filterDirty.set(true);
+        }
     }
 
     public void setFilterAttackTime(double seconds) {
-        this.filterAttackTime = Math.max(0.0, seconds);
-        this.filterEnvDirty.set(true);
+        double clamped = Math.max(0.0, seconds);
+        if (Double.compare(this.filterAttackTime, clamped) != 0) {
+            this.filterAttackTime = clamped;
+            this.filterEnvDirty.set(true);
+        }
     }
 
     public void setFilterDecayTime(double seconds) {
-        this.filterDecayTime = Math.max(0.0, seconds);
-        this.filterEnvDirty.set(true);
+        double clamped = Math.max(0.0, seconds);
+        if (Double.compare(this.filterDecayTime, clamped) != 0) {
+            this.filterDecayTime = clamped;
+            this.filterEnvDirty.set(true);
+        }
     }
 
     public void setFilterSustainLevel(double level) {
-        this.filterSustainLevel = Math.max(0.0, Math.min(1.0, level));
-        this.filterEnvDirty.set(true);
+        double clamped = Math.max(0.0, Math.min(1.0, level));
+        if (Double.compare(this.filterSustainLevel, clamped) != 0) {
+            this.filterSustainLevel = clamped;
+            this.filterEnvDirty.set(true);
+        }
     }
 
     public void setFilterReleaseTime(double seconds) {
-        this.filterReleaseTime = Math.max(0.0, seconds);
-        this.filterEnvDirty.set(true);
+        double clamped = Math.max(0.0, seconds);
+        if (Double.compare(this.filterReleaseTime, clamped) != 0) {
+            this.filterReleaseTime = clamped;
+            this.filterEnvDirty.set(true);
+        }
     }
 
     public void setAmpAttackTime(double seconds) {
-        this.ampAttackTime = Math.max(0.0, seconds);
-        this.ampEnvDirty.set(true);
+        double clamped = Math.max(0.0, seconds);
+        if (Double.compare(this.ampAttackTime, clamped) != 0) {
+            this.ampAttackTime = clamped;
+            this.ampEnvDirty.set(true);
+        }
     }
 
     public void setAmpDecayTime(double seconds) {
-        this.ampDecayTime = Math.max(0.0, seconds);
-        this.ampEnvDirty.set(true);
+        double clamped = Math.max(0.0, seconds);
+        if (Double.compare(this.ampDecayTime, clamped) != 0) {
+            this.ampDecayTime = clamped;
+            this.ampEnvDirty.set(true);
+        }
     }
 
     public void setAmpSustainLevel(double level) {
-        this.ampSustainLevel = Math.max(0.0, Math.min(1.0, level));
-        this.ampEnvDirty.set(true);
+        double clamped = Math.max(0.0, Math.min(1.0, level));
+        if (Double.compare(this.ampSustainLevel, clamped) != 0) {
+            this.ampSustainLevel = clamped;
+            this.ampEnvDirty.set(true);
+        }
     }
 
     public void setAmpReleaseTime(double seconds) {
-        this.ampReleaseTime = Math.max(0.0, seconds);
-        this.ampEnvDirty.set(true);
+        double clamped = Math.max(0.0, seconds);
+        if (Double.compare(this.ampReleaseTime, clamped) != 0) {
+            this.ampReleaseTime = clamped;
+            this.ampEnvDirty.set(true);
+        }
     }
 
     public void setPreFilterGainDB(double db) {
-        this.preFilterGainDB = db;
-        this.gainDirty.set(true);
+        if (Double.compare(this.preFilterGainDB, db) != 0) {
+            this.preFilterGainDB = db;
+            this.gainDirty.set(true);
+        }
     }
 
     public void setPostFilterGainDB(double db) {
-        this.postFilterGainDB = db;
-        this.gainDirty.set(true);
+        if (Double.compare(this.postFilterGainDB, db) != 0) {
+            this.postFilterGainDB = db;
+            this.gainDirty.set(true);
+        }
     }
 
     public void setLFOFrequency(double frequency) {
@@ -245,8 +282,11 @@ public class Synthesiser{
     }
 
     public void setPanDepth(double depth) {
-        this.panDepth = Math.max(0.0, Math.min(1.0, depth));
-        this.panDirty.set(true);
+        double clamped = Math.max(0.0, Math.min(1.0, depth));
+        if (Double.compare(this.panDepth, clamped) != 0) {
+            this.panDepth = clamped;
+            this.panDirty.set(true);
+        }
     }
 
     public void setMasterVolume(double volumeScalar){
