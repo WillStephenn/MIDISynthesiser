@@ -12,6 +12,7 @@ import java.util.Map;
 public class Synthesiser{
     // Control all the voices. Bundles them up in an arraylist ready to be shipped to the buffer.
     private final Voice[] voices;
+    private final double sampleRate;
 
     // Master Configs (synth-wide settings)
     // Oscillator
@@ -42,6 +43,7 @@ public class Synthesiser{
     private volatile double postFilterGainDB;
     private final double voiceSumAttenuation;
     private volatile double volumeAttenuation;
+    private volatile double masterVolumeScalar = 1.0;
 
     // LFO
     private Oscillator LFO;
@@ -77,6 +79,7 @@ public class Synthesiser{
         if (noVoices <= 0) {
             throw new IllegalArgumentException("Number of voices must be positive.");
         }
+        this.sampleRate = sampleRate;
         this.voiceSumAttenuation = 1.0 / Math.sqrt(noVoices);
         this.volumeAttenuation = this.voiceSumAttenuation;
         this.voices = new Voice[noVoices];
@@ -132,6 +135,9 @@ public class Synthesiser{
      * @param LFOWaveForm The new waveform for the LFO.
      */
     public void setLFOWaveform(Waveform LFOWaveForm){
+        if (LFOWaveForm == null) {
+            throw new IllegalArgumentException("LFOWaveForm cannot be null");
+        }
         if(this.LFOWaveForm != LFOWaveForm){
             this.LFOWaveForm = LFOWaveForm;
         }
@@ -159,7 +165,8 @@ public class Synthesiser{
     }
 
     public void setFilterCutoff(double cutoff) {
-        this.filterCutoff = Math.max(20.0, Math.min(20000.0, cutoff)); // Clamp to audible range
+        double maxCutoff = (this.sampleRate / 2.0) - 1.0;
+        this.filterCutoff = Math.max(20.0, Math.min(maxCutoff, cutoff));
         this.filterDirty = true;
     }
 
@@ -233,6 +240,7 @@ public class Synthesiser{
     }
 
     public void setMasterVolume(double volumeScalar){
+        this.masterVolumeScalar = volumeScalar;
         this.volumeAttenuation = this.voiceSumAttenuation * volumeScalar;
     }
 
@@ -266,6 +274,7 @@ public class Synthesiser{
     public Waveform getLFOWaveform() { return LFOWaveForm; }
     public double getLFOFrequency() { return LFOFrequency; }
     public double getPanDepth() { return panDepth; }
+    public double getMasterVolumeScalar() { return masterVolumeScalar; }
 
     /**
      * Fills the provided array with active notes.
@@ -446,6 +455,14 @@ public class Synthesiser{
             boolean pa = this.panDirty;
 
             if (wf || fi || fe || ae || ga || pa) {
+                // Snapshot volatile fields into locals for consistent per-block updates
+                Waveform wfSnap = wf ? this.waveform : null;
+                double fcSnap = this.filterCutoff, frSnap = this.filterResonance, fmrSnap = this.filterModRange;
+                double faSnap = this.filterAttackTime, fdSnap = this.filterDecayTime, fsSnap = this.filterSustainLevel, frTSnap = this.filterReleaseTime;
+                double aaSnap = this.ampAttackTime, adSnap = this.ampDecayTime, asSnap = this.ampSustainLevel, arSnap = this.ampReleaseTime;
+                double pfgSnap = this.preFilterGainDB, pfgPostSnap = this.postFilterGainDB;
+                double pdSnap = this.panDepth;
+
                 if (wf) this.waveformDirty = false;
                 if (fi) this.filterDirty = false;
                 if (fe) this.filterEnvDirty = false;
@@ -454,12 +471,12 @@ public class Synthesiser{
                 if (pa) this.panDirty = false;
 
                 for (int i = 0; i < voices.length; i++) {
-                    if (wf) voices[i].setOscillatorWaveform(this.waveform);
-                    if (fi) voices[i].setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModRange);
-                    if (fe) voices[i].setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
-                    if (ae) voices[i].setAmpEnvelope(this.ampAttackTime, this.ampDecayTime, this.ampSustainLevel, this.ampReleaseTime);
-                    if (ga) voices[i].setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
-                    if (pa) voices[i].setPanDepth(this.panDepth);
+                    if (wf) voices[i].setOscillatorWaveform(wfSnap);
+                    if (fi) voices[i].setFilterParameters(fcSnap, frSnap, fmrSnap);
+                    if (fe) voices[i].setFilterEnvelope(faSnap, fdSnap, fsSnap, frTSnap);
+                    if (ae) voices[i].setAmpEnvelope(aaSnap, adSnap, asSnap, arSnap);
+                    if (ga) voices[i].setFilterGainStaging(pfgSnap, pfgPostSnap);
+                    if (pa) voices[i].setPanDepth(pdSnap);
                 }
             }
 
@@ -470,11 +487,13 @@ public class Synthesiser{
                     voice.processBlock(null, this.voiceOutputBuffer, this.blockSize);
                     for(int j = 0; j < this.blockSize * 2; j++){
                         stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * vol;
-                        this.LFOPosition = lfoOutputBuffer[j/2];
                     }
                 }
             }
         }
+
+        // Update LFO position once per block (last sample)
+        this.LFOPosition = lfoOutputBuffer[blockSize - 1];
 
         // Hard Clipping
         for (int i = 0; i < blockSize * 2; i++) {
@@ -526,6 +545,14 @@ public class Synthesiser{
             boolean pa = this.panDirty;
 
             if (wf || fi || fe || ae || ga || pa) {
+                // Snapshot volatile fields into locals for consistent per-block updates
+                Waveform wfSnap = wf ? this.waveform : null;
+                double fcSnap = this.filterCutoff, frSnap = this.filterResonance, fmrSnap = this.filterModRange;
+                double faSnap = this.filterAttackTime, fdSnap = this.filterDecayTime, fsSnap = this.filterSustainLevel, frTSnap = this.filterReleaseTime;
+                double aaSnap = this.ampAttackTime, adSnap = this.ampDecayTime, asSnap = this.ampSustainLevel, arSnap = this.ampReleaseTime;
+                double pfgSnap = this.preFilterGainDB, pfgPostSnap = this.postFilterGainDB;
+                double pdSnap = this.panDepth;
+
                 if (wf) this.waveformDirty = false;
                 if (fi) this.filterDirty = false;
                 if (fe) this.filterEnvDirty = false;
@@ -534,12 +561,12 @@ public class Synthesiser{
                 if (pa) this.panDirty = false;
 
                 for (int i = 0; i < voices.length; i++) {
-                    if (wf) voices[i].setOscillatorWaveform(this.waveform);
-                    if (fi) voices[i].setFilterParameters(this.filterCutoff, this.filterResonance, this.filterModRange);
-                    if (fe) voices[i].setFilterEnvelope(this.filterAttackTime, this.filterDecayTime, this.filterSustainLevel, this.filterReleaseTime);
-                    if (ae) voices[i].setAmpEnvelope(this.ampAttackTime, this.ampDecayTime, this.ampSustainLevel, this.ampReleaseTime);
-                    if (ga) voices[i].setFilterGainStaging(this.preFilterGainDB, this.postFilterGainDB);
-                    if (pa) voices[i].setPanDepth(this.panDepth);
+                    if (wf) voices[i].setOscillatorWaveform(wfSnap);
+                    if (fi) voices[i].setFilterParameters(fcSnap, frSnap, fmrSnap);
+                    if (fe) voices[i].setFilterEnvelope(faSnap, fdSnap, fsSnap, frTSnap);
+                    if (ae) voices[i].setAmpEnvelope(aaSnap, adSnap, asSnap, arSnap);
+                    if (ga) voices[i].setFilterGainStaging(pfgSnap, pfgPostSnap);
+                    if (pa) voices[i].setPanDepth(pdSnap);
                 }
             }
 
@@ -549,13 +576,15 @@ public class Synthesiser{
                     voice.processBlockInstrumented(this.lfoOutputBuffer, this.voiceOutputBuffer, this.blockSize, timings);
                     for(int j = 0; j < this.blockSize * 2; j++){
                         stereoOutputBuffer[j] += this.voiceOutputBuffer[j] * vol;
-                        this.LFOPosition = lfoOutputBuffer[j/2];
                     }
                 }
             }
         }
         endTime = System.nanoTime();
         timings.merge("Voice Processing & Mix", endTime - startTime, Long::sum);
+
+        // Update LFO position once per block (last sample)
+        this.LFOPosition = lfoOutputBuffer[blockSize - 1];
 
 
         // Hard Clipping
