@@ -1,12 +1,12 @@
 package synth.tests;
 
-import synth.core.Synthesiser;
-import synth.utils.AudioConstants;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import synth.core.Synthesiser;
+import synth.utils.AudioConstants;
 
 public class PerformanceTest {
 
