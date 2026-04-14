@@ -6,7 +6,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.sound.midi.MidiDevice;
 import javax.sound.sampled.AudioFormat;
@@ -36,9 +39,9 @@ import synth.utils.AudioDeviceConnector;
 public class SynthUIController implements Initializable {
 
     private Synthesiser synth;
-    private SourceDataLine line;
+    private volatile SourceDataLine line;
     private MidiDevice midiDevice;
-    private Thread audioThread;
+    private volatile Thread audioThread;
     private volatile boolean audioThreadRunning = false;
     
     // Performance logging variables
@@ -110,8 +113,15 @@ public class SynthUIController implements Initializable {
     @FXML private Slider postFilterGainSlider;
     @FXML private Label postFilterGainLabel;
     
-    // Track master volume since synth doesn't have a getter
-    private double currentMasterVolume = 1.0;
+    private ScheduledExecutorService deviceScanExecutor;
+
+    // Guard to suppress device-change listeners during refresh
+    private boolean refreshingDevices = false;
+
+    // Flag to prevent redundant synth calls when syncing UI from MIDI CC
+    private boolean syncingFromMidi = false;
+    // Coalescing flag for MIDI CC UI sync
+    private final AtomicBoolean midiSyncPending = new AtomicBoolean(false);
 
     /**
      * Called by JavaFX to initialise the controller after its root element has been processed.
@@ -128,7 +138,20 @@ public class SynthUIController implements Initializable {
 
         setupDeviceSelectors();
         setupControls();
-        syncUIWithSynthSettings();
+        syncingFromMidi = true;
+        try {
+            syncUIWithSynthSettings();
+        } finally {
+            syncingFromMidi = false;
+        }
+
+        deviceScanExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "device-scan");
+            t.setDaemon(true);
+            return t;
+        });
+        long intervalMs = (long) (AudioConstants.DEVICE_SCAN_INTERVAL_SECONDS * 1000);
+        deviceScanExecutor.scheduleAtFixedRate(this::refreshDeviceLists, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -136,19 +159,19 @@ public class SynthUIController implements Initializable {
      */
     private void setupDeviceSelectors() {
         // Audio Devices
-        ArrayList<String> audioDevices = AudioDeviceConnector.getAudioOutputDeviceList();
+        ArrayList<String> audioDevices = AudioDeviceConnector.getAudioOutputDeviceList(true);
         audioDeviceChoiceBox.setItems(FXCollections.observableArrayList(audioDevices));
         audioDeviceChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldDevice, newDevice) -> {
-            if (newDevice != null) {
+            if (newDevice != null && !refreshingDevices) {
                 changeAudioDevice(newDevice);
             }
         });
 
         // MIDI Devices
-        ArrayList<String> midiDevices = MidiDeviceConnector.getMidiDevicesList();
+        ArrayList<String> midiDevices = MidiDeviceConnector.getMidiDevicesList(true);
         midiDeviceChoiceBox.setItems(FXCollections.observableArrayList(midiDevices));
         midiDeviceChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldDevice, newDevice) -> {
-            if (newDevice != null) {
+            if (newDevice != null && !refreshingDevices) {
                 changeMidiDevice(newDevice);
             }
         });
@@ -162,6 +185,34 @@ public class SynthUIController implements Initializable {
         }
     }
 
+    private void refreshDeviceLists() {
+        ArrayList<String> newMidi = MidiDeviceConnector.getMidiDevicesList();
+        ArrayList<String> newAudio = AudioDeviceConnector.getAudioOutputDeviceList();
+
+        Platform.runLater(() -> {
+            refreshingDevices = true;
+            try {
+                if (!newMidi.equals(new ArrayList<>(midiDeviceChoiceBox.getItems()))) {
+                    String selected = midiDeviceChoiceBox.getValue();
+                    midiDeviceChoiceBox.getItems().setAll(newMidi);
+                    if (newMidi.contains(selected)) {
+                        midiDeviceChoiceBox.setValue(selected);
+                    }
+                }
+
+                if (!newAudio.equals(new ArrayList<>(audioDeviceChoiceBox.getItems()))) {
+                    String selected = audioDeviceChoiceBox.getValue();
+                    audioDeviceChoiceBox.getItems().setAll(newAudio);
+                    if (newAudio.contains(selected)) {
+                        audioDeviceChoiceBox.setValue(selected);
+                    }
+                }
+            } finally {
+                refreshingDevices = false;
+            }
+        });
+    }
+
     /**
      * Binds all UI controls (sliders, choice boxes) to their corresponding synthesiser parameters
      * and sets up real-time parameter readouts.
@@ -170,13 +221,13 @@ public class SynthUIController implements Initializable {
         // Oscillator Controls
         waveformChoiceBox.setItems(FXCollections.observableArrayList(Synthesiser.Waveform.values()));
         waveformChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
-            if (n != null) synth.setOscillatorWaveform(n);
+            if (n != null && !syncingFromMidi) synth.setOscillatorWaveform(n);
         });
 
         // LFO Controls
         lfoWaveformChoiceBox.setItems(FXCollections.observableArrayList(Synthesiser.Waveform.values()));
         lfoWaveformChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
-            if (n != null) synth.setLFOWaveform(n);
+            if (n != null && !syncingFromMidi) synth.setLFOWaveform(n);
         });
 
         setupLFOControls();
@@ -193,7 +244,7 @@ public class SynthUIController implements Initializable {
     private void setupLFOControls() {
         lfoFrequencySlider.valueProperty().addListener((obs, o, n) -> {
             double freq = n.doubleValue();
-            synth.setLFOFrequency(freq);
+            if (!syncingFromMidi) synth.setLFOFrequency(freq);
             lfoFrequencyLabel.setText(frequencyFormat.format(freq) + " Hz");
         });
     }
@@ -214,28 +265,28 @@ public class SynthUIController implements Initializable {
         // Amp envelope
         ampEnvelopeVisualizer.attackTimeProperty().addListener((obs, o, n) -> {
             double attack = n.doubleValue();
-            synth.setAmpAttackTime(attack);
+            if (!syncingFromMidi) synth.setAmpAttackTime(attack);
             ampAttackSlider.setValue(attack);
             ampAttackLabel.setText(timeFormat.format(attack) + " s");
         });
         
         ampEnvelopeVisualizer.decayTimeProperty().addListener((obs, o, n) -> {
             double decay = n.doubleValue();
-            synth.setAmpDecayTime(decay);
+            if (!syncingFromMidi) synth.setAmpDecayTime(decay);
             ampDecaySlider.setValue(decay);
             ampDecayLabel.setText(timeFormat.format(decay) + " s");
         });
         
         ampEnvelopeVisualizer.sustainLevelProperty().addListener((obs, o, n) -> {
             double sustain = n.doubleValue();
-            synth.setAmpSustainLevel(sustain);
+            if (!syncingFromMidi) synth.setAmpSustainLevel(sustain);
             ampSustainSlider.setValue(sustain);
             ampSustainLabel.setText(levelFormat.format(sustain));
         });
         
         ampEnvelopeVisualizer.releaseTimeProperty().addListener((obs, o, n) -> {
             double release = n.doubleValue();
-            synth.setAmpReleaseTime(release);
+            if (!syncingFromMidi) synth.setAmpReleaseTime(release);
             ampReleaseSlider.setValue(release);
             ampReleaseLabel.setText(timeFormat.format(release) + " s");
         });
@@ -243,28 +294,28 @@ public class SynthUIController implements Initializable {
         // Filter envelope
         filterEnvelopeVisualizer.attackTimeProperty().addListener((obs, o, n) -> {
             double attack = n.doubleValue();
-            synth.setFilterAttackTime(attack);
+            if (!syncingFromMidi) synth.setFilterAttackTime(attack);
             filterAttackSlider.setValue(attack);
             filterAttackLabel.setText(timeFormat.format(attack) + " s");
         });
         
         filterEnvelopeVisualizer.decayTimeProperty().addListener((obs, o, n) -> {
             double decay = n.doubleValue();
-            synth.setFilterDecayTime(decay);
+            if (!syncingFromMidi) synth.setFilterDecayTime(decay);
             filterDecaySlider.setValue(decay);
             filterDecayLabel.setText(timeFormat.format(decay) + " s");
         });
         
         filterEnvelopeVisualizer.sustainLevelProperty().addListener((obs, o, n) -> {
             double sustain = n.doubleValue();
-            synth.setFilterSustainLevel(sustain);
+            if (!syncingFromMidi) synth.setFilterSustainLevel(sustain);
             filterSustainSlider.setValue(sustain);
             filterSustainLabel.setText(levelFormat.format(sustain));
         });
         
         filterEnvelopeVisualizer.releaseTimeProperty().addListener((obs, o, n) -> {
             double release = n.doubleValue();
-            synth.setFilterReleaseTime(release);
+            if (!syncingFromMidi) synth.setFilterReleaseTime(release);
             filterReleaseSlider.setValue(release);
             filterReleaseLabel.setText(timeFormat.format(release) + " s");
         });
@@ -276,19 +327,19 @@ public class SynthUIController implements Initializable {
     private void setupFilterControls() {
         filterCutoffSlider.valueProperty().addListener((obs, o, n) -> {
             double cutoff = n.doubleValue();
-            synth.setFilterCutoff(cutoff);
+            if (!syncingFromMidi) synth.setFilterCutoff(cutoff);
             filterCutoffLabel.setText(integerFormat.format(cutoff) + " Hz");
         });
         
         filterResonanceSlider.valueProperty().addListener((obs, o, n) -> {
             double resonance = n.doubleValue();
-            synth.setFilterResonance(resonance);
+            if (!syncingFromMidi) synth.setFilterResonance(resonance);
             filterResonanceLabel.setText(frequencyFormat.format(resonance));
         });
         
         filterModRangeSlider.valueProperty().addListener((obs, o, n) -> {
             double modRange = n.doubleValue();
-            synth.setFilterModRange(modRange);
+            if (!syncingFromMidi) synth.setFilterModRange(modRange);
             filterModRangeLabel.setText(integerFormat.format(modRange) + " Hz");
         });
     }
@@ -299,28 +350,28 @@ public class SynthUIController implements Initializable {
     private void setupAmpEnvelopeControls() {
         ampAttackSlider.valueProperty().addListener((obs, o, n) -> {
             double attack = n.doubleValue();
-            synth.setAmpAttackTime(attack);
+            if (!syncingFromMidi) synth.setAmpAttackTime(attack);
             ampEnvelopeVisualizer.setAttackTime(attack);
             ampAttackLabel.setText(timeFormat.format(attack) + " s");
         });
         
         ampDecaySlider.valueProperty().addListener((obs, o, n) -> {
             double decay = n.doubleValue();
-            synth.setAmpDecayTime(decay);
+            if (!syncingFromMidi) synth.setAmpDecayTime(decay);
             ampEnvelopeVisualizer.setDecayTime(decay);
             ampDecayLabel.setText(timeFormat.format(decay) + " s");
         });
         
         ampSustainSlider.valueProperty().addListener((obs, o, n) -> {
             double sustain = n.doubleValue();
-            synth.setAmpSustainLevel(sustain);
+            if (!syncingFromMidi) synth.setAmpSustainLevel(sustain);
             ampEnvelopeVisualizer.setSustainLevel(sustain);
             ampSustainLabel.setText(levelFormat.format(sustain));
         });
         
         ampReleaseSlider.valueProperty().addListener((obs, o, n) -> {
             double release = n.doubleValue();
-            synth.setAmpReleaseTime(release);
+            if (!syncingFromMidi) synth.setAmpReleaseTime(release);
             ampEnvelopeVisualizer.setReleaseTime(release);
             ampReleaseLabel.setText(timeFormat.format(release) + " s");
         });
@@ -332,28 +383,28 @@ public class SynthUIController implements Initializable {
     private void setupFilterEnvelopeControls() {
         filterAttackSlider.valueProperty().addListener((obs, o, n) -> {
             double attack = n.doubleValue();
-            synth.setFilterAttackTime(attack);
+            if (!syncingFromMidi) synth.setFilterAttackTime(attack);
             filterEnvelopeVisualizer.setAttackTime(attack);
             filterAttackLabel.setText(timeFormat.format(attack) + " s");
         });
         
         filterDecaySlider.valueProperty().addListener((obs, o, n) -> {
             double decay = n.doubleValue();
-            synth.setFilterDecayTime(decay);
+            if (!syncingFromMidi) synth.setFilterDecayTime(decay);
             filterEnvelopeVisualizer.setDecayTime(decay);
             filterDecayLabel.setText(timeFormat.format(decay) + " s");
         });
         
         filterSustainSlider.valueProperty().addListener((obs, o, n) -> {
             double sustain = n.doubleValue();
-            synth.setFilterSustainLevel(sustain);
+            if (!syncingFromMidi) synth.setFilterSustainLevel(sustain);
             filterEnvelopeVisualizer.setSustainLevel(sustain);
             filterSustainLabel.setText(levelFormat.format(sustain));
         });
         
         filterReleaseSlider.valueProperty().addListener((obs, o, n) -> {
             double release = n.doubleValue();
-            synth.setFilterReleaseTime(release);
+            if (!syncingFromMidi) synth.setFilterReleaseTime(release);
             filterEnvelopeVisualizer.setReleaseTime(release);
             filterReleaseLabel.setText(timeFormat.format(release) + " s");
         });
@@ -365,26 +416,25 @@ public class SynthUIController implements Initializable {
     private void setupGlobalControls() {
         masterVolumeSlider.valueProperty().addListener((obs, o, n) -> {
             double volume = n.doubleValue();
-            currentMasterVolume = volume;
-            synth.setMasterVolume(volume);
+            if (!syncingFromMidi) synth.setMasterVolume(volume);
             masterVolumeLabel.setText(percentFormat.format(volume * 100) + "%");
         });
         
         panDepthSlider.valueProperty().addListener((obs, o, n) -> {
             double panDepth = n.doubleValue();
-            synth.setPanDepth(panDepth);
+            if (!syncingFromMidi) synth.setPanDepth(panDepth);
             panDepthLabel.setText(levelFormat.format(panDepth));
         });
         
         preFilterGainSlider.valueProperty().addListener((obs, o, n) -> {
             double gain = n.doubleValue();
-            synth.setPreFilterGainDB(gain);
+            if (!syncingFromMidi) synth.setPreFilterGainDB(gain);
             preFilterGainLabel.setText(decibelsFormat.format(gain) + " dB");
         });
         
         postFilterGainSlider.valueProperty().addListener((obs, o, n) -> {
             double gain = n.doubleValue();
-            synth.setPostFilterGainDB(gain);
+            if (!syncingFromMidi) synth.setPostFilterGainDB(gain);
             postFilterGainLabel.setText(decibelsFormat.format(gain) + " dB");
         });
     }
@@ -430,7 +480,7 @@ public class SynthUIController implements Initializable {
         filterEnvelopeVisualizer.setReleaseTime(synth.getFilterReleaseTime());
         
         // Global Control settings
-        masterVolumeSlider.setValue(currentMasterVolume);
+        masterVolumeSlider.setValue(synth.getMasterVolumeScalar());
         panDepthSlider.setValue(synth.getPanDepth());
         preFilterGainSlider.setValue(synth.getPreFilterGainDB());
         postFilterGainSlider.setValue(synth.getPostFilterGainDB());
@@ -521,7 +571,27 @@ public class SynthUIController implements Initializable {
         if (midiDevice != null && midiDevice.isOpen()) {
             midiDevice.close();
         }
-        midiDevice = MidiDeviceConnector.connectToDevice(synth, deviceName);
+        midiDevice = MidiDeviceConnector.connectToDevice(synth, deviceName, this::onMidiControlChange);
+    }
+
+    /**
+     * Called from the MIDI thread when a CC message is processed.
+     * Schedules a coalesced UI sync on the JavaFX application thread.
+     * Clearing the pending flag at the start of execution allows CCs arriving
+     * during sync to schedule a fresh runLater, preventing stale UI state.
+     */
+    private void onMidiControlChange() {
+        if (midiSyncPending.compareAndSet(false, true)) {
+            Platform.runLater(() -> {
+                midiSyncPending.set(false);
+                syncingFromMidi = true;
+                try {
+                    syncUIWithSynthSettings();
+                } finally {
+                    syncingFromMidi = false;
+                }
+            });
+        }
     }
 
     /**
@@ -604,6 +674,10 @@ public class SynthUIController implements Initializable {
      * Safely closes audio and MIDI resources when the application exits.
      */
     public void shutdown() {
+        if (deviceScanExecutor != null) {
+            deviceScanExecutor.shutdownNow();
+        }
+
         // Stop the audio thread
         if (audioThread != null && audioThread.isAlive()) {
             audioThreadRunning = false;

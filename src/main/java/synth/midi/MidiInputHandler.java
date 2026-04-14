@@ -3,6 +3,7 @@ package synth.midi;
 import javax.sound.midi.MidiMessage;
 import javax.sound.midi.Receiver;
 import javax.sound.midi.ShortMessage;
+
 import synth.core.Synthesiser;
 
 /**
@@ -11,16 +12,27 @@ import synth.core.Synthesiser;
  */
 public class MidiInputHandler implements Receiver{
     private final Synthesiser synth;
+    private final Runnable onControlChange;
 
     /**
      * Constructs a MidiInputHandler.
      * @param synth The synthesiser to be controlled. Must not be null.
      */
     public MidiInputHandler(Synthesiser synth) {
+        this(synth, null);
+    }
+
+    /**
+     * Constructs a MidiInputHandler with a control change callback.
+     * @param synth The synthesiser to be controlled. Must not be null.
+     * @param onControlChange Optional callback invoked after a CC message is processed.
+     */
+    public MidiInputHandler(Synthesiser synth, Runnable onControlChange) {
         if (synth == null) {
             throw new IllegalArgumentException("Synthesiser cannot be null.");
         }
         this.synth = synth;
+        this.onControlChange = onControlChange;
     }
 
     /**
@@ -50,6 +62,7 @@ public class MidiInputHandler implements Receiver{
                 double scaledValue = value / 127.0;
 
                 // Parameter control switch:
+                boolean handled = true;
                 switch (controller) {
                     // --- OSCILLATOR CONTROLS ---
                     case 32: // Modulation Wheel, LFO Frequency
@@ -132,11 +145,22 @@ public class MidiInputHandler implements Receiver{
                         break;
                     case 15: // Post-Filter Gain)
                         // Ranges 24dB to +24dB
-                        synth.setPreFilterGainDB((scaledValue * 48.0) - 24.0);
+                        synth.setPostFilterGainDB((scaledValue * 48.0) - 24.0);
                         break;
                     case 16: // Pan Depth
                         synth.setPanDepth(scaledValue);
                         break;
+                    default:
+                        handled = false;
+                        break;
+                }
+
+                if (handled && onControlChange != null) {
+                    try {
+                        onControlChange.run();
+                    } catch (Exception e) {
+                        System.err.println("Error in MIDI CC callback: " + e.getMessage());
+                    }
                 }
             }
         }

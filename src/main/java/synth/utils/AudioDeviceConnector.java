@@ -11,32 +11,37 @@ import java.util.Scanner;
 public class AudioDeviceConnector {
 
     /**
-     * Lists all available audio output devices to the console.
+     * Returns all available audio output device names.
      * An output device is a mixer that can provide a SourceDataLine.
+     * Equivalent to {@code getAudioOutputDeviceList(false)} (no console output).
      * @return An ArrayList of strings, where each string is the name of an available device.
      */
     public static ArrayList<String> getAudioOutputDeviceList() {
+        return getAudioOutputDeviceList(false);
+    }
+
+    public static ArrayList<String> getAudioOutputDeviceList(boolean verbose) {
         ArrayList<String> devices = new ArrayList<>();
-        System.out.println("--- Select Audio Output Device ---");
+        if (verbose) System.out.println("--- Select Audio Output Device ---");
         int i = 1;
         for (Mixer.Info info : AudioSystem.getMixerInfo()) {
-            // Filter to skip devices starting with "Port "
             if (info.getName().startsWith("Port ")) {
                 continue;
             }
             try {
                 Mixer mixer = AudioSystem.getMixer(info);
-                // Check if the mixer supports output (SourceDataLine)
                 if (mixer.getSourceLineInfo().length > 0) {
                     devices.add(info.getName());
-                    System.out.println(i + "- " + info.getName());
+                    if (verbose) System.out.println(i + "- " + info.getName());
                     i++;
                 }
             } catch (Exception e) {
-                // Ignore devices that can't be accessed
+                if (verbose) {
+                    System.err.println("Skipping audio device '" + info.getName() + "': " + e.getMessage());
+                }
             }
         }
-        System.out.println("------------------------------------");
+        if (verbose) System.out.println("------------------------------------");
         return devices;
     }
 
@@ -46,7 +51,7 @@ public class AudioDeviceConnector {
      * @return The name of the selected audio device, or null if none are found.
      */
     public static String promptUser() {
-        ArrayList<String> devices = getAudioOutputDeviceList();
+        ArrayList<String> devices = getAudioOutputDeviceList(true);
         if (devices.isEmpty()) {
             System.out.println("No audio output devices available.");
             return null;

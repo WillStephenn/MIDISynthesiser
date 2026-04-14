@@ -1,40 +1,53 @@
 package synth.midi;
 
-import synth.core.Synthesiser;
-import javax.sound.midi.*;
 import java.util.ArrayList;
-import java.util.Scanner;
 import java.util.InputMismatchException;
+import java.util.Scanner;
+
+import javax.sound.midi.MidiDevice;
+import javax.sound.midi.MidiSystem;
+import javax.sound.midi.MidiUnavailableException;
+import javax.sound.midi.Transmitter;
+
+import synth.core.Synthesiser;
 
 
 public class MidiDeviceConnector {
 
     /**
-     * Lists all available MIDI input devices to the console.
+     * Returns all available MIDI input device names.
      * An input device is one that can send MIDI messages (has at least one transmitter).
+     * Equivalent to {@code getMidiDevicesList(false)} (no console output).
      */
     public static ArrayList<String> getMidiDevicesList() {
-        ArrayList<String> Devices = new ArrayList<>();
-        System.out.println("--- Select MIDI Input Device ---");
+        return getMidiDevicesList(false);
+    }
+
+    public static ArrayList<String> getMidiDevicesList(boolean verbose) {
+        ArrayList<String> devices = new ArrayList<>();
+        if (verbose) System.out.println("--- Select MIDI Input Device ---");
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
         if (infos.length == 0) {
-            System.out.println("No MIDI devices found.");
-            return null;
+            if (verbose) System.out.println("No MIDI devices found.");
+            return devices;
         }
         int i = 1;
         for (MidiDevice.Info info : infos) {
             try {
                 MidiDevice device = MidiSystem.getMidiDevice(info);
                 if (device.getMaxTransmitters() != 0) {
-                    Devices.add(info.getName());
-                    System.out.println(i + "- " + info.getName());
+                    devices.add(info.getName());
+                    if (verbose) System.out.println(i + "- " + info.getName());
                     i ++;
                 }
             } catch (MidiUnavailableException e) {
+                if (verbose) {
+                    System.err.println("Skipping MIDI device '" + info.getName() + "': " + e.getMessage());
+                }
             }
         }
-        System.out.println("------------------------------------");
-        return Devices;
+        if (verbose) System.out.println("------------------------------------");
+        return devices;
     }
 
     /**
@@ -43,8 +56,8 @@ public class MidiDeviceConnector {
      * @return The name of the selected MIDI device, or null if none are found.
      */
     public static String promptUser() {
-        ArrayList<String> devices = getMidiDevicesList();
-        if (devices == null || devices.isEmpty()) {
+        ArrayList<String> devices = getMidiDevicesList(true);
+        if (devices.isEmpty()) {
             System.out.println("No MIDI devices available.");
             return null;
         }
@@ -80,6 +93,17 @@ public class MidiDeviceConnector {
      * @return The MidiDevice object if connection is successful, otherwise null.
      */
     public static MidiDevice connectToDevice(Synthesiser synth, String deviceName) {
+        return connectToDevice(synth, deviceName, null);
+    }
+
+    /**
+     * Connects the synthesiser to the first MIDI input device found with the specified name.
+     * @param synth The Synthesiser instance to connect.
+     * @param deviceName The name of the MIDI device to connect to (e.g., "IAC Driver Bus 1").
+     * @param onControlChange Optional callback invoked after a MIDI CC message is processed.
+     * @return The MidiDevice object if connection is successful, otherwise null.
+     */
+    public static MidiDevice connectToDevice(Synthesiser synth, String deviceName, Runnable onControlChange) {
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
         for (MidiDevice.Info info : infos) {
             if (info.getName().equals(deviceName)) {
@@ -89,7 +113,7 @@ public class MidiDeviceConnector {
                     if (device.getMaxTransmitters() != 0) {
                         device.open();
                         Transmitter transmitter = device.getTransmitter();
-                        transmitter.setReceiver(new MidiInputHandler(synth));
+                        transmitter.setReceiver(new MidiInputHandler(synth, onControlChange));
                         System.out.println("Successfully connected to MIDI device: " + deviceName);
                         return device;
                     }
