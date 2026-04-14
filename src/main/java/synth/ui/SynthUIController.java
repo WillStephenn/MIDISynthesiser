@@ -115,6 +115,9 @@ public class SynthUIController implements Initializable {
     
     private ScheduledExecutorService deviceScanExecutor;
 
+    // Guard to suppress device-change listeners during refresh
+    private boolean refreshingDevices = false;
+
     // Flag to prevent redundant synth calls when syncing UI from MIDI CC
     private boolean syncingFromMidi = false;
     // Coalescing flag for MIDI CC UI sync
@@ -159,7 +162,7 @@ public class SynthUIController implements Initializable {
         ArrayList<String> audioDevices = AudioDeviceConnector.getAudioOutputDeviceList(true);
         audioDeviceChoiceBox.setItems(FXCollections.observableArrayList(audioDevices));
         audioDeviceChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldDevice, newDevice) -> {
-            if (newDevice != null) {
+            if (newDevice != null && !refreshingDevices) {
                 changeAudioDevice(newDevice);
             }
         });
@@ -168,7 +171,7 @@ public class SynthUIController implements Initializable {
         ArrayList<String> midiDevices = MidiDeviceConnector.getMidiDevicesList(true);
         midiDeviceChoiceBox.setItems(FXCollections.observableArrayList(midiDevices));
         midiDeviceChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldDevice, newDevice) -> {
-            if (newDevice != null) {
+            if (newDevice != null && !refreshingDevices) {
                 changeMidiDevice(newDevice);
             }
         });
@@ -187,20 +190,25 @@ public class SynthUIController implements Initializable {
         ArrayList<String> newAudio = AudioDeviceConnector.getAudioOutputDeviceList();
 
         Platform.runLater(() -> {
-            if (!newMidi.equals(new ArrayList<>(midiDeviceChoiceBox.getItems()))) {
-                String selected = midiDeviceChoiceBox.getValue();
-                midiDeviceChoiceBox.getItems().setAll(newMidi);
-                if (newMidi.contains(selected)) {
-                    midiDeviceChoiceBox.setValue(selected);
+            refreshingDevices = true;
+            try {
+                if (!newMidi.equals(new ArrayList<>(midiDeviceChoiceBox.getItems()))) {
+                    String selected = midiDeviceChoiceBox.getValue();
+                    midiDeviceChoiceBox.getItems().setAll(newMidi);
+                    if (newMidi.contains(selected)) {
+                        midiDeviceChoiceBox.setValue(selected);
+                    }
                 }
-            }
 
-            if (!newAudio.equals(new ArrayList<>(audioDeviceChoiceBox.getItems()))) {
-                String selected = audioDeviceChoiceBox.getValue();
-                audioDeviceChoiceBox.getItems().setAll(newAudio);
-                if (newAudio.contains(selected)) {
-                    audioDeviceChoiceBox.setValue(selected);
+                if (!newAudio.equals(new ArrayList<>(audioDeviceChoiceBox.getItems()))) {
+                    String selected = audioDeviceChoiceBox.getValue();
+                    audioDeviceChoiceBox.getItems().setAll(newAudio);
+                    if (newAudio.contains(selected)) {
+                        audioDeviceChoiceBox.setValue(selected);
+                    }
                 }
+            } finally {
+                refreshingDevices = false;
             }
         });
     }
