@@ -37,9 +37,9 @@ import synth.utils.AudioDeviceConnector;
 public class SynthUIController implements Initializable {
 
     private Synthesiser synth;
-    private SourceDataLine line;
+    private volatile SourceDataLine line;
     private MidiDevice midiDevice;
-    private Thread audioThread;
+    private volatile Thread audioThread;
     private volatile boolean audioThreadRunning = false;
     
     // Performance logging variables
