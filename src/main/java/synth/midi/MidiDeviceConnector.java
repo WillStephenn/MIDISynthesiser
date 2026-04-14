@@ -23,19 +23,19 @@ public class MidiDeviceConnector {
     }
 
     public static ArrayList<String> getMidiDevicesList(boolean verbose) {
-        ArrayList<String> Devices = new ArrayList<>();
+        ArrayList<String> devices = new ArrayList<>();
         if (verbose) System.out.println("--- Select MIDI Input Device ---");
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
         if (infos.length == 0) {
             if (verbose) System.out.println("No MIDI devices found.");
-            return Devices;
+            return devices;
         }
         int i = 1;
         for (MidiDevice.Info info : infos) {
             try {
                 MidiDevice device = MidiSystem.getMidiDevice(info);
                 if (device.getMaxTransmitters() != 0) {
-                    Devices.add(info.getName());
+                    devices.add(info.getName());
                     if (verbose) System.out.println(i + "- " + info.getName());
                     i ++;
                 }
@@ -43,7 +43,7 @@ public class MidiDeviceConnector {
             }
         }
         if (verbose) System.out.println("------------------------------------");
-        return Devices;
+        return devices;
     }
 
     /**
