@@ -156,7 +156,11 @@ public class MidiInputHandler implements Receiver{
                 }
 
                 if (handled && onControlChange != null) {
-                    onControlChange.run();
+                    try {
+                        onControlChange.run();
+                    } catch (Exception e) {
+                        System.err.println("Error in MIDI CC callback: " + e.getMessage());
+                    }
                 }
             }
         }
