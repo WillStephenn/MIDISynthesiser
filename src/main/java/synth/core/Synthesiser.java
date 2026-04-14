@@ -150,8 +150,8 @@ public class Synthesiser{
     }
 
     /**
-     * Updates the main oscillator waveform for all voices.
-     * This will clear and repopulate the voice bank with new oscillators.
+     * Sets the main oscillator waveform. The change is deferred and applied
+     * to all voices by the audio thread at the start of the next processing block.
      * @param waveform The new waveform to use.
      */
     public void setOscillatorWaveform(Waveform waveform){
@@ -258,12 +258,14 @@ public class Synthesiser{
      * Applies all current patch settings to all voices. Hook for potential future patch loading system.
      */
     public void applyPatch(){
-        setOscillatorWaveform(this.waveform);
-        setLFOWaveform(this.LFOWaveForm);
-        for(int i = 0; i < voices.length; i++){
-            setVoiceParams(voices[i]);
+        synchronized (voices) {
+            setOscillatorWaveform(this.waveform);
+            setLFOWaveform(this.LFOWaveForm);
+            for(int i = 0; i < voices.length; i++){
+                setVoiceParams(voices[i]);
+            }
+            setLFOFrequency(this.LFOFrequency);
         }
-        setLFOFrequency(this.LFOFrequency);
     }
 
     //  --- Getters ---
