@@ -465,7 +465,8 @@ public class SynthUIController implements Initializable {
         filterEnvelopeVisualizer.setReleaseTime(synth.getFilterReleaseTime());
         
         // Global Control settings
-        masterVolumeSlider.setValue(currentMasterVolume);
+        masterVolumeSlider.setValue(synth.getMasterVolumeScalar());
+        currentMasterVolume = synth.getMasterVolumeScalar();
         panDepthSlider.setValue(synth.getPanDepth());
         preFilterGainSlider.setValue(synth.getPreFilterGainDB());
         postFilterGainSlider.setValue(synth.getPostFilterGainDB());
