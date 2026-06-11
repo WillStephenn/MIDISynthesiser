@@ -118,12 +118,6 @@ public class Envelope implements AudioComponent {
             throw new IllegalArgumentException("Release time cannot be negative.");
         }
         this.releaseTime = seconds;
-        if (releaseTime == 0) {
-            // sustainLevel is already the total amount to change, so no increment needed
-            this.releaseIncrement = sustainLevel;
-        } else {
-            this.releaseIncrement = sustainLevel * this.sampleRateReciprocal / this.releaseTime;
-        }
     }
 
     /**
@@ -151,9 +145,22 @@ public class Envelope implements AudioComponent {
 
     /**
      * Triggers the release phase of the envelope when a note is released.
+     * The release ramp is derived from the envelope level at the moment of
+     * release rather than from the sustain level, so a note released during
+     * Attack or Decay still fades to silence over the release time and the
+     * envelope always reaches Idle (a sustain level of 0.0 would otherwise
+     * yield a zero increment, leaving the voice stuck in Release forever).
      */
     public void noteOff(){
-        this.currentStage = Stage.RELEASE;
+        if (this.currentMultiplier <= 0.0 || this.releaseTime == 0.0) {
+            // Nothing left to release, or an instant release: drop straight to Idle.
+            this.currentMultiplier = 0.0;
+            this.releaseIncrement = 0.0;
+            this.currentStage = Stage.IDLE;
+        } else {
+            this.releaseIncrement = this.currentMultiplier * this.sampleRateReciprocal / this.releaseTime;
+            this.currentStage = Stage.RELEASE;
+        }
     }
 
     /**
