@@ -4,12 +4,18 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
 
 /**
  * A visual envelope designer component that displays an ADSR envelope curve
  * and allows interactive editing by dragging control points.
+ * <p>
+ * The plot is four fixed-width segments (attack, decay, sustain hold, release). Inside each
+ * time segment a handle's x is log time (see {@link EnvelopeAxis}), so a handle can never leave
+ * the plot and dragging one handle never moves another's time.
  * 
  * June's Logue - Visual Envelope Designer
  */
@@ -29,14 +35,14 @@ public class EnvelopeVisualizer extends Canvas {
     private final DoubleProperty sustainLevel = new SimpleDoubleProperty(0.4);
     private final DoubleProperty releaseTime = new SimpleDoubleProperty(0.4);
     
-    // Time scaling for visualization (max time to display)
-    private double maxTimeSeconds = 3.0;
-    
     // Control points for interaction
     private static final double CONTROL_POINT_RADIUS = 6.0;
     private enum ControlPoint { NONE, ATTACK, DECAY, SUSTAIN, RELEASE }
     private ControlPoint draggedPoint = ControlPoint.NONE;
     private boolean isDragging = false;
+    // Handle position minus pointer position at press, so grabbing a handle off-centre doesn't move it
+    private double grabOffsetX = 0.0;
+    private double grabOffsetY = 0.0;
     
     // Padding for drawing area
     private static final double PADDING = 20.0;
@@ -65,62 +71,39 @@ public class EnvelopeVisualizer extends Canvas {
     }
     
     private void handleMousePressed(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) return; // only the primary button drags
         double x = event.getX();
         double y = event.getY();
         
         draggedPoint = getControlPointAt(x, y);
         if (draggedPoint != ControlPoint.NONE) {
             isDragging = true;
+            double[] p = pointPosition(draggedPoint);
+            grabOffsetX = p[0] - x;
+            grabOffsetY = p[1] - y;
+            draw();
         }
     }
     
     private void handleMouseDragged(MouseEvent event) {
         if (!isDragging || draggedPoint == ControlPoint.NONE) return;
         
-        double x = event.getX();
-        double y = event.getY();
-        
-        // Convert screen coordinates to envelope parameters
         double drawWidth = getWidth() - 2 * PADDING;
         double drawHeight = getHeight() - 2 * PADDING;
         
-        // Normalize coordinates
-        double normalizedX = (x - PADDING) / drawWidth;
-        double normalizedY = 1.0 - (y - PADDING) / drawHeight; // Flip Y axis
-        
-        // Clamp values
-        normalizedX = Math.max(0.0, Math.min(1.0, normalizedX));
-        normalizedY = Math.max(0.0, Math.min(1.0, normalizedY));
+        // Where the handle should sit: pointer plus the grab offset. xToTime clamps to the handle's own segment.
+        double plotX = event.getX() + grabOffsetX - PADDING;
+        double level = 1.0 - (event.getY() + grabOffsetY - PADDING) / drawHeight; // Flip Y axis
+        level = Math.max(0.0, Math.min(1.0, level));
         
         switch (draggedPoint) {
-            case ATTACK -> {
-                // Attack time is based on X position relative to total time
-                double newAttackTime = normalizedX * maxTimeSeconds * 0.3; // Limit to 30% of total time
-                attackTime.set(Math.max(0.001, newAttackTime));
-            }
+            case ATTACK -> attackTime.set(EnvelopeAxis.xToTime(EnvelopeAxis.ATTACK, plotX, drawWidth));
             case DECAY -> {
-                // Decay time and sustain level
-                double newDecayTime = Math.max(0.001, (normalizedX * maxTimeSeconds) - attackTime.get());
-                decayTime.set(newDecayTime);
-                sustainLevel.set(normalizedY);
+                decayTime.set(EnvelopeAxis.xToTime(EnvelopeAxis.DECAY, plotX, drawWidth));
+                sustainLevel.set(level);
             }
-            case SUSTAIN -> {
-                // Only sustain level (Y position) - X position is fixed
-                sustainLevel.set(normalizedY);
-            }
-            case RELEASE -> {
-                // For release, we want to control the release time based on how far right we drag
-                // The release starts from the sustain point, so we calculate relative to that
-                double sustainEndX = (attackTime.get() + decayTime.get()) / maxTimeSeconds;
-                double sustainVisualizationWidth = 80.0 / (getWidth() - 2 * PADDING); // Normalize the 80px sustain visualization
-                double releaseStartX = sustainEndX + sustainVisualizationWidth;
-                
-                // Only update if we're dragging to the right of the sustain phase
-                if (normalizedX > releaseStartX) {
-                    double newReleaseTime = (normalizedX - releaseStartX) * maxTimeSeconds;
-                    releaseTime.set(Math.max(0.001, newReleaseTime));
-                }
-            }
+            case SUSTAIN -> sustainLevel.set(level); // X is fixed
+            case RELEASE -> releaseTime.set(EnvelopeAxis.xToTime(EnvelopeAxis.RELEASE, plotX, drawWidth));
             default -> {
                 // No action for NONE case
             }
@@ -131,6 +114,7 @@ public class EnvelopeVisualizer extends Canvas {
     private void handleMouseReleased(MouseEvent event) {
         isDragging = false;
         draggedPoint = ControlPoint.NONE;
+        draw();
     }
     
     private void handleMouseMoved(MouseEvent event) {
@@ -147,38 +131,33 @@ public class EnvelopeVisualizer extends Canvas {
         }
     }
     
-    private ControlPoint getControlPointAt(double x, double y) {
+    /** Canvas position {x, y} of a handle; the same numbers the curve and handles are drawn at. */
+    private double[] pointPosition(ControlPoint point) {
         double drawWidth = getWidth() - 2 * PADDING;
         double drawHeight = getHeight() - 2 * PADDING;
-        
-        // Calculate control point positions - make sure they match drawEnvelopeCurve exactly
-        double attackX = PADDING + (attackTime.get() / maxTimeSeconds) * drawWidth;
-        double attackY = PADDING; // Attack goes to max (top)
-        
-        double decayX = PADDING + ((attackTime.get() + decayTime.get()) / maxTimeSeconds) * drawWidth;
-        double decayY = PADDING + (1.0 - sustainLevel.get()) * drawHeight;
-        
-        // Sustain point - positioned at the end of the sustain phase
-        double sustainX = decayX + 80; // Match the sustain visualization length from drawEnvelopeCurve
-        double sustainY = decayY;
-        
-        // Release point - positioned at the end of the release phase
-        double releaseX = sustainX + (releaseTime.get() / maxTimeSeconds) * drawWidth;
-        releaseX = Math.min(releaseX, PADDING + drawWidth); // Clamp to visible area
-        double releaseY = PADDING + drawHeight; // Release goes to bottom
-        
-        // Check if mouse is near any control point - check in reverse order for overlapping points
-        if (isNearPoint(x, y, releaseX, releaseY)) return ControlPoint.RELEASE;
-        if (isNearPoint(x, y, sustainX, sustainY)) return ControlPoint.SUSTAIN;
-        if (isNearPoint(x, y, decayX, decayY)) return ControlPoint.DECAY;
-        if (isNearPoint(x, y, attackX, attackY)) return ControlPoint.ATTACK;
-        
-        return ControlPoint.NONE;
+        double sustainY = PADDING + (1.0 - sustainLevel.get()) * drawHeight;
+        return switch (point) {
+            case ATTACK -> new double[] {PADDING + EnvelopeAxis.timeToX(EnvelopeAxis.ATTACK, attackTime.get(), drawWidth), PADDING};
+            case DECAY -> new double[] {PADDING + EnvelopeAxis.timeToX(EnvelopeAxis.DECAY, decayTime.get(), drawWidth), sustainY};
+            case SUSTAIN -> new double[] {PADDING + EnvelopeAxis.segmentEnd(EnvelopeAxis.HOLD, drawWidth), sustainY};
+            case RELEASE -> new double[] {PADDING + EnvelopeAxis.timeToX(EnvelopeAxis.RELEASE, releaseTime.get(), drawWidth), PADDING + drawHeight};
+            default -> new double[] {PADDING, PADDING + drawHeight};
+        };
     }
     
-    private boolean isNearPoint(double x, double y, double pointX, double pointY) {
-        double distance = Math.sqrt(Math.pow(x - pointX, 2) + Math.pow(y - pointY, 2));
-        return distance <= CONTROL_POINT_RADIUS * 3; // Increased hit area for easier grabbing
+    /** The control point nearest to (x, y) within the hit radius (ties go to the later of A, D, S, R). */
+    private ControlPoint getControlPointAt(double x, double y) {
+        ControlPoint best = ControlPoint.NONE;
+        double bestDistance = CONTROL_POINT_RADIUS * 3; // Increased hit area for easier grabbing
+        for (ControlPoint point : new ControlPoint[] {ControlPoint.ATTACK, ControlPoint.DECAY, ControlPoint.SUSTAIN, ControlPoint.RELEASE}) {
+            double[] p = pointPosition(point);
+            double distance = Math.hypot(x - p[0], y - p[1]);
+            if (distance <= bestDistance) {
+                best = point;
+                bestDistance = distance;
+            }
+        }
+        return best;
     }
     
     private void draw() {
@@ -208,10 +187,12 @@ public class EnvelopeVisualizer extends Canvas {
         gc.setStroke(GRID_COLOR);
         gc.setLineWidth(1.0);
         
-        // Vertical grid lines (time)
-        for (int i = 0; i <= 10; i++) {
-            double x = PADDING + (i / 10.0) * drawWidth;
-            gc.strokeLine(x, PADDING, x, PADDING + drawHeight);
+        // Vertical grid lines (time): one per decade (10 ms, 100 ms, 1 s) inside each time segment
+        for (int segment : new int[] {EnvelopeAxis.ATTACK, EnvelopeAxis.DECAY, EnvelopeAxis.RELEASE}) {
+            for (double t : new double[] {0.01, 0.1, 1.0}) {
+                double x = PADDING + EnvelopeAxis.timeToX(segment, t, drawWidth);
+                gc.strokeLine(x, PADDING, x, PADDING + drawHeight);
+            }
         }
         
         // Horizontal grid lines (level)
@@ -219,6 +200,15 @@ public class EnvelopeVisualizer extends Canvas {
             double y = PADDING + (i / 10.0) * drawHeight;
             gc.strokeLine(PADDING, y, PADDING + drawWidth, y);
         }
+        
+        // Segment dividers
+        gc.setStroke(CONTROL_POINT_COLOR.deriveColor(0, 1, 1, 0.55));
+        gc.setLineDashes(3, 3);
+        for (int segment = 1; segment < 4; segment++) {
+            double x = PADDING + EnvelopeAxis.segmentStart(segment, drawWidth);
+            gc.strokeLine(x, PADDING, x, PADDING + drawHeight);
+        }
+        gc.setLineDashes((double[]) null);
         
         // Draw border
         gc.setStroke(CONTROL_POINT_COLOR);
@@ -230,57 +220,32 @@ public class EnvelopeVisualizer extends Canvas {
         gc.setStroke(CURVE_COLOR);
         gc.setLineWidth(3.0);
         
-        // Calculate key points
-        double attackX = PADDING + (attackTime.get() / maxTimeSeconds) * drawWidth;
-        double attackY = PADDING; // Attack peak (top)
+        // Every handle stays inside its own segment, so the curve always fits the plot
+        double[] a = pointPosition(ControlPoint.ATTACK);
+        double[] d = pointPosition(ControlPoint.DECAY);
+        double[] s = pointPosition(ControlPoint.SUSTAIN);
+        double[] r = pointPosition(ControlPoint.RELEASE);
         
-        double decayX = PADDING + ((attackTime.get() + decayTime.get()) / maxTimeSeconds) * drawWidth;
-        double decayY = PADDING + (1.0 - sustainLevel.get()) * drawHeight;
-        
-        double sustainX = decayX + 80; // Sustain phase visualization
-        double sustainY = decayY;
-        
-        double releaseX = sustainX + (releaseTime.get() / maxTimeSeconds) * drawWidth;
-        releaseX = Math.min(releaseX, PADDING + drawWidth); // Clamp to visible area
-        double releaseY = PADDING + drawHeight; // Release to bottom
-        
-        // Draw envelope segments
         // Start to Attack
-        gc.strokeLine(PADDING, PADDING + drawHeight, attackX, attackY);
-        
+        gc.strokeLine(PADDING, PADDING + drawHeight, a[0], a[1]);
         // Attack to Decay
-        gc.strokeLine(attackX, attackY, decayX, decayY);
-        
+        gc.strokeLine(a[0], a[1], d[0], d[1]);
         // Sustain phase
-        gc.strokeLine(decayX, decayY, sustainX, sustainY);
-        
+        gc.strokeLine(d[0], d[1], s[0], s[1]);
         // Release phase
-        gc.strokeLine(sustainX, sustainY, releaseX, releaseY);
+        gc.strokeLine(s[0], s[1], r[0], r[1]);
     }
     
     private void drawControlPoints(GraphicsContext gc, double drawWidth, double drawHeight) {
-        // Calculate control point positions
-        double attackX = PADDING + (attackTime.get() / maxTimeSeconds) * drawWidth;
-        double attackY = PADDING;
-        
-        double decayX = PADDING + ((attackTime.get() + decayTime.get()) / maxTimeSeconds) * drawWidth;
-        double decayY = PADDING + (1.0 - sustainLevel.get()) * drawHeight;
-        
-        double sustainX = decayX + 80;
-        double sustainY = decayY;
-        
-        double releaseX = sustainX + (releaseTime.get() / maxTimeSeconds) * drawWidth;
-        releaseX = Math.min(releaseX, PADDING + drawWidth);
-        double releaseY = PADDING + drawHeight;
-        
-        // Draw control points
-        drawControlPoint(gc, attackX, attackY, "A", draggedPoint == ControlPoint.ATTACK);
-        drawControlPoint(gc, decayX, decayY, "D", draggedPoint == ControlPoint.DECAY);
-        drawControlPoint(gc, sustainX, sustainY, "S", draggedPoint == ControlPoint.SUSTAIN);
-        drawControlPoint(gc, releaseX, releaseY, "R", draggedPoint == ControlPoint.RELEASE);
+        drawControlPoint(gc, pointPosition(ControlPoint.ATTACK), "A", draggedPoint == ControlPoint.ATTACK);
+        drawControlPoint(gc, pointPosition(ControlPoint.DECAY), "D", draggedPoint == ControlPoint.DECAY);
+        drawControlPoint(gc, pointPosition(ControlPoint.SUSTAIN), "S", draggedPoint == ControlPoint.SUSTAIN);
+        drawControlPoint(gc, pointPosition(ControlPoint.RELEASE), "R", draggedPoint == ControlPoint.RELEASE);
     }
     
-    private void drawControlPoint(GraphicsContext gc, double x, double y, String label, boolean highlighted) {
+    private void drawControlPoint(GraphicsContext gc, double[] position, String label, boolean highlighted) {
+        double x = position[0];
+        double y = position[1];
         Color fillColor = highlighted ? CONTROL_POINT_HIGHLIGHT : CONTROL_POINT_COLOR;
         
         // Draw control point circle
@@ -305,9 +270,16 @@ public class EnvelopeVisualizer extends Canvas {
         gc.setFill(TEXT_COLOR);
         gc.setFont(javafx.scene.text.Font.font("Orbitron", 9));
         
-        // Time axis labels
-        gc.fillText("0s", PADDING - 5, PADDING + drawHeight + 15);
-        gc.fillText(String.format("%.1fs", maxTimeSeconds), PADDING + drawWidth - 15, PADDING + drawHeight + 15);
+        // Segment labels: each segment's name with its time
+        gc.setTextAlign(TextAlignment.CENTER);
+        String[] names = {
+            "A " + EnvelopeAxis.formatTime(attackTime.get()), "D " + EnvelopeAxis.formatTime(decayTime.get()), "S", "R " + EnvelopeAxis.formatTime(releaseTime.get())
+        };
+        for (int i = 0; i < names.length; i++) {
+            double centre = PADDING + (EnvelopeAxis.segmentStart(i, drawWidth) + EnvelopeAxis.segmentEnd(i, drawWidth)) / 2;
+            gc.fillText(names[i], centre, PADDING + drawHeight + 14);
+        }
+        gc.setTextAlign(TextAlignment.LEFT);
         
         // Level axis labels
         gc.fillText("0", PADDING - 15, PADDING + drawHeight + 3);
@@ -331,12 +303,6 @@ public class EnvelopeVisualizer extends Canvas {
     public double getDecayTime() { return decayTime.get(); }
     public double getSustainLevel() { return sustainLevel.get(); }
     public double getReleaseTime() { return releaseTime.get(); }
-    
-    // Utility method to set max time scale
-    public void setMaxTimeSeconds(double maxTime) {
-        this.maxTimeSeconds = maxTime;
-        draw();
-    }
     
     @Override
     public boolean isResizable() {
