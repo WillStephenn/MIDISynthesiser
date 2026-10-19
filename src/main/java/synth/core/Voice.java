@@ -95,7 +95,7 @@ public class Voice implements AudioComponent{
 
         // Set Oscillator starting pitch
         this.pitchFrequency = pitchFrequency;
-        this.oscillator.setFrequency(this.pitchFrequency);
+        setAllOscillatorFrequencies(this.pitchFrequency);
 
         // Set Default Velocity
         this.velocityMult = 1.0;
@@ -120,7 +120,18 @@ public class Voice implements AudioComponent{
             throw new IllegalArgumentException("MIDI pitch cannot be negative.");
         }
         this.pitchMIDI = pitchMIDI;
-        this.oscillator.setFrequency(LookupTables.MIDI_TO_HZ[pitchMIDI]);
+        setAllOscillatorFrequencies(LookupTables.MIDI_TO_HZ[pitchMIDI]);
+    }
+
+    /**
+     * Tunes all four oscillators, so a waveform switch (or a note that arrives
+     * before the patch's waveform is applied) never lands on an untuned one.
+     */
+    private void setAllOscillatorFrequencies(double frequency){
+        this.sine.setFrequency(frequency);
+        this.saw.setFrequency(frequency);
+        this.triangle.setFrequency(frequency);
+        this.square.setFrequency(frequency);
     }
 
     public void setOscillatorWaveform(Synthesiser.Waveform waveform){
