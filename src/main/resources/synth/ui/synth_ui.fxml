@@ -127,7 +127,7 @@
                             <Label text="ATTACK" styleClass="parameter-label" />
                             <Label fx:id="ampAttackLabel" text="0.005 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
                         </HBox>
-                        <Slider fx:id="ampAttackSlider" min="0.001" max="5.0" value="0.005" prefWidth="240.0" styleClass="envelope-slider" />
+                        <Slider fx:id="ampAttackSlider" min="0.0" max="1.0" value="0.1890" blockIncrement="0.01" prefWidth="240.0" styleClass="envelope-slider" />
                     </VBox>
                     
                     <VBox spacing="6.0">
@@ -135,7 +135,7 @@
                             <Label text="DECAY" styleClass="parameter-label" />
                             <Label fx:id="ampDecayLabel" text="0.1 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
                         </HBox>
-                        <Slider fx:id="ampDecaySlider" min="0.001" max="5.0" value="0.1" prefWidth="240.0" styleClass="envelope-slider" />
+                        <Slider fx:id="ampDecaySlider" min="0.0" max="1.0" value="0.5407" blockIncrement="0.01" prefWidth="240.0" styleClass="envelope-slider" />
                     </VBox>
                     
                     <VBox spacing="6.0">
@@ -151,7 +151,7 @@
                             <Label text="RELEASE" styleClass="parameter-label" />
                             <Label fx:id="ampReleaseLabel" text="0.4 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
                         </HBox>
-                        <Slider fx:id="ampReleaseSlider" min="0.001" max="5.0" value="0.4" prefWidth="240.0" styleClass="envelope-slider" />
+                        <Slider fx:id="ampReleaseSlider" min="0.0" max="1.0" value="0.7035" blockIncrement="0.01" prefWidth="240.0" styleClass="envelope-slider" />
                     </VBox>
                 </VBox>
             </VBox>
@@ -173,7 +173,7 @@
                             <Label text="ATTACK" styleClass="parameter-label" />
                             <Label fx:id="filterAttackLabel" text="0.01 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
                         </HBox>
-                        <Slider fx:id="filterAttackSlider" min="0.001" max="5.0" value="0.01" prefWidth="240.0" styleClass="filter-slider" />
+                        <Slider fx:id="filterAttackSlider" min="0.0" max="1.0" value="0.2703" blockIncrement="0.01" prefWidth="240.0" styleClass="filter-slider" />
                     </VBox>
                     
                     <VBox spacing="6.0">
@@ -181,7 +181,7 @@
                             <Label text="DECAY" styleClass="parameter-label" />
                             <Label fx:id="filterDecayLabel" text="0.3 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
                         </HBox>
-                        <Slider fx:id="filterDecaySlider" min="0.001" max="5.0" value="0.3" prefWidth="240.0" styleClass="filter-slider" />
+                        <Slider fx:id="filterDecaySlider" min="0.0" max="1.0" value="0.6697" blockIncrement="0.01" prefWidth="240.0" styleClass="filter-slider" />
                     </VBox>
                     
                     <VBox spacing="6.0">
@@ -197,7 +197,7 @@
                             <Label text="RELEASE" styleClass="parameter-label" />
                             <Label fx:id="filterReleaseLabel" text="0.1 s" styleClass="value-readout" style="-fx-padding: 0 0 0 10;" />
                         </HBox>
-                        <Slider fx:id="filterReleaseSlider" min="0.001" max="5.0" value="0.1" prefWidth="240.0" styleClass="filter-slider" />
+                        <Slider fx:id="filterReleaseSlider" min="0.0" max="1.0" value="0.5407" blockIncrement="0.01" prefWidth="240.0" styleClass="filter-slider" />
                     </VBox>
                 </VBox>
             </VBox>
