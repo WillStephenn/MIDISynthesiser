@@ -445,11 +445,13 @@ public class Synthesiser{
                 }
             }
 
-            // If all voices are active, find the oldest one to steal
+            // If all voices are active, steal the oldest releasing voice, else the oldest held one
             if (targetVoice == null) {
                 targetVoice = voices[0];
                 for (int i = 1; i < voices.length; i++) {
-                    if (voices[i].getNoteOnTime() < targetVoice.getNoteOnTime()) {
+                    boolean held = voices[i].isActiveNoRelease();
+                    boolean targetHeld = targetVoice.isActiveNoRelease();
+                    if (held != targetHeld ? targetHeld : voices[i].getNoteOnTime() < targetVoice.getNoteOnTime()) {
                         targetVoice = voices[i];
                     }
                 }
